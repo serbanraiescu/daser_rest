@@ -14,8 +14,8 @@ class CheckLicenseStatus
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Exclude license setup routes and API routes if needed (though API might need protection too)
-        if ($request->is('setup/license*', 'livewire/*', 'filament/assets/*')) {
+        // Exclude license setup routes, deployment routes, and API routes if needed
+        if ($request->is('setup/license*', 'livewire/*', 'filament/assets/*', '__deploy/*')) {
             return $next($request);
         }
 
