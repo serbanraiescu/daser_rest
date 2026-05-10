@@ -223,9 +223,9 @@ class ProductResource extends Resource
                                 
                                 Section::make('Alergeni & Caracteristici Speciale')
                                     ->schema([
-                                        Select::make('allergens')
+                                        Select::make('allergenRelations')
                                             ->label('Alergeni (Sistem Nou)')
-                                            ->relationship('allergens', 'name')
+                                            ->relationship('allergenRelations', 'name')
                                             ->multiple()
                                             ->searchable()
                                             ->preload()

@@ -50,7 +50,7 @@ class Product extends Model
         return $this->belongsToMany(Ingredient::class, 'ingredient_product');
     }
 
-    public function allergens(): BelongsToMany
+    public function allergenRelations(): BelongsToMany
     {
         return $this->belongsToMany(Allergen::class, 'allergen_product');
     }

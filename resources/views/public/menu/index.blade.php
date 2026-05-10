@@ -115,13 +115,13 @@
                                                             </div>
                                                         @endif
 
-                                                        @if($product->allergens->isNotEmpty())
+                                                        @if($product->allergenRelations->isNotEmpty())
                                                             <div class="flex gap-1 ml-2">
-                                                                @foreach($product->allergens as $allergen)
+                                                                @foreach($product->allergenRelations as $allergen)
                                                                     <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>
                                                                 @endforeach
                                                             </div>
-                                                        @elseif($product->allergens_legacy)
+                                                        @elseif($product->allergens)
                                                              <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">Alergeni</span>
                                                         @endif
                                                     </div>
@@ -260,7 +260,7 @@
                                 </div>
                             </template>
 
-                            <template x-if="(selectedProduct?.allergens && selectedProduct.allergens.length > 0) || selectedProduct?.allergens_legacy">
+                            <template x-if="(selectedProduct?.allergen_relations && selectedProduct.allergen_relations.length > 0) || selectedProduct?.allergens">
                                 <div class="bg-red-50/50 rounded-2xl p-5 border border-red-100">
                                     <h4 class="font-bold text-red-900 mb-3 flex items-center gap-2">
                                         <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -268,12 +268,12 @@
                                     </h4>
                                     <div class="flex flex-wrap gap-2">
                                         <!-- New Allergens -->
-                                        <template x-for="allergen in selectedProduct.allergens" :key="allergen.id">
+                                        <template x-for="allergen in selectedProduct.allergen_relations" :key="allergen.id">
                                             <span class="px-2 py-1 bg-white text-red-700 rounded-md text-xs font-bold border border-red-200 uppercase tracking-tighter" x-text="allergen.name"></span>
                                         </template>
                                         <!-- Fallback Legacy -->
-                                        <template x-if="selectedProduct.allergens.length === 0 && selectedProduct.allergens_legacy">
-                                            <p class="text-xs text-red-700 font-medium italic" x-text="selectedProduct.allergens_legacy"></p>
+                                        <template x-if="selectedProduct.allergen_relations.length === 0 && selectedProduct.allergens">
+                                            <p class="text-xs text-red-700 font-medium italic" x-text="selectedProduct.allergens"></p>
                                         </template>
                                     </div>
                                 </div>
