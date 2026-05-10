@@ -184,34 +184,58 @@
                         <!-- Ingredients -->
                         <template x-if="selectedProduct?.ingredients && selectedProduct.ingredients.length > 0">
                             <div>
-                                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">{{ __('Ingredients') }}</h4>
+                                <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">{{ __('Ingrediente') }}</h4>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="ingredient in selectedProduct.ingredients" :key="ingredient.id">
-                                        <span class="px-2 py-1 bg-green-50 text-green-700 rounded-md text-xs font-medium border border-green-100" x-text="ingredient.name"></span>
+                                        <span class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium border border-gray-200" x-text="ingredient.name"></span>
                                     </template>
                                 </div>
                             </div>
                         </template>
 
-                        <!-- Nutrition & Allergens (Collapsible or just visible) -->
-                        <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
-                            <div class="grid grid-cols-2 gap-4">
-                                <template x-if="selectedProduct?.nutritional_data && (selectedProduct.nutritional_data.calories > 0 || selectedProduct.nutritional_data.protein > 0)">
-                                    <div>
-                                        <h4 class="font-bold text-gray-900 mb-1">Nutriție (100g)</h4>
-                                        <ul class="space-y-1">
-                                            <li class="flex justify-between"><span>Calorii:</span> <span class="font-medium" x-text="selectedProduct.nutritional_data.calories + ' kcal'"></span></li>
-                                            <li class="flex justify-between"><span>Proteine:</span> <span class="font-medium" x-text="selectedProduct.nutritional_data.protein + ' g'"></span></li>
-                                        </ul>
-                                    </div>
-                                </template>
-                                <template x-if="selectedProduct?.allergens">
-                                    <div>
-                                        <h4 class="font-bold text-gray-900 mb-1">Alergeni</h4>
-                                        <p class="text-xs text-red-500 font-medium" x-text="selectedProduct.allergens"></p>
-                                    </div>
-                                </template>
+                        <!-- Special Markers (Frozen) -->
+                        <template x-if="selectedProduct?.is_frozen">
+                            <div class="flex items-center space-x-2 text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                <span class="text-sm font-semibold" x-text="selectedProduct.frozen_note || '* Produs provenit din produs congelat.'"></span>
                             </div>
+                        </template>
+
+                        <!-- Nutrition & Allergens -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <template x-if="selectedProduct?.nutritional_data && (selectedProduct.nutritional_data.calories > 0 || selectedProduct.nutritional_data.protein > 0)">
+                                <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                                    <h4 class="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                        {{ __('Nutriție (100g)') }}
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-y-2 text-sm text-gray-600">
+                                        <span>Calorii:</span> <span class="font-bold text-right" x-text="selectedProduct.nutritional_data.calories + ' kcal'"></span>
+                                        <span>Proteine:</span> <span class="font-bold text-right" x-text="selectedProduct.nutritional_data.protein + ' g'"></span>
+                                        <span>Grăsimi:</span> <span class="font-bold text-right" x-text="(selectedProduct.nutritional_data.fats || 0) + ' g'"></span>
+                                        <span>Carbohidrați:</span> <span class="font-bold text-right" x-text="(selectedProduct.nutritional_data.carbs || 0) + ' g'"></span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="(selectedProduct?.allergens && selectedProduct.allergens.length > 0) || selectedProduct?.allergens_legacy">
+                                <div class="bg-red-50/50 rounded-2xl p-5 border border-red-100">
+                                    <h4 class="font-bold text-red-900 mb-3 flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        {{ __('Alergeni') }}
+                                    </h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <!-- New Allergens -->
+                                        <template x-for="allergen in selectedProduct.allergens" :key="allergen.id">
+                                            <span class="px-2 py-1 bg-white text-red-700 rounded-md text-xs font-bold border border-red-200 uppercase tracking-tighter" x-text="allergen.name"></span>
+                                        </template>
+                                        <!-- Fallback Legacy -->
+                                        <template x-if="selectedProduct.allergens.length === 0 && selectedProduct.allergens_legacy">
+                                            <p class="text-xs text-red-700 font-medium italic" x-text="selectedProduct.allergens_legacy"></p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
 
                         <!-- Variations -->
@@ -436,7 +460,10 @@
             },
 
             openModal(product) {
-                this.selectedProduct = product;
+                this.selectedProduct = {
+                    ...product,
+                    allergens_legacy: product.allergens // Save legacy string before override if any
+                };
                 this.selectedVariation = null;
                 this.quantity = 1;
                 this.notes = '';

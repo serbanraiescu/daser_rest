@@ -199,12 +199,13 @@ class ProductResource extends Resource
                         // Tab 2: Ingredients
                         \Filament\Forms\Components\Tabs\Tab::make('Recipe & Ingredients')
                             ->schema([
-                                CheckboxList::make('ingredients')
+                                Select::make('ingredients')
                                     ->label('Ingrediente')
                                     ->relationship('ingredients', 'name')
-                                    ->columns(3)
+                                    ->multiple()
                                     ->searchable()
-                                    ->bulkToggleable(),
+                                    ->preload()
+                                    ->columnSpanFull(),
                             ]),
 
                         // Tab 3: Nutritional Values & Allergens
@@ -220,11 +221,37 @@ class ProductResource extends Resource
                                         TextInput::make('nutritional_data.salt')->label('Sare (g)')->numeric(),
                                     ])->columns(3),
                                 
-                                Textarea::make('allergens')
-                                    ->label('Alergeni')
-                                    ->placeholder('Ex: Gluten, Ouă, Lapte...')
-                                    ->rows(3)
-                                    ->columnSpanFull(),
+                                Section::make('Alergeni & Caracteristici Speciale')
+                                    ->schema([
+                                        Select::make('allergens')
+                                            ->label('Alergeni (Sistem Nou)')
+                                            ->relationship('allergens', 'name')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload()
+                                            ->columnSpanFull(),
+
+                                        Toggle::make('is_frozen')
+                                            ->label('Produs Congelat / Decongelat')
+                                            ->live(),
+
+                                        TextInput::make('frozen_note')
+                                            ->label('Notă Produs Congelat')
+                                            ->placeholder('Ex: Produs provenit din produs congelat.')
+                                            ->visible(fn (Get $get) => $get('is_frozen'))
+                                            ->columnSpanFull(),
+
+                                        Section::make('Legacy Data')
+                                            ->collapsed()
+                                            ->schema([
+                                                Textarea::make('allergens')
+                                                    ->label('Alergeni (Vechi / Fallback)')
+                                                    ->placeholder('Ex: Gluten, Ouă, Lapte...')
+                                                    ->rows(2)
+                                                    ->readOnly()
+                                                    ->columnSpanFull(),
+                                            ]),
+                                    ]),
                             ]),
                     ])->columnSpanFull(),
             ]);

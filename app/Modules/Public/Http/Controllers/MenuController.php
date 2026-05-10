@@ -20,7 +20,7 @@ class MenuController extends Controller
                 $query->where('is_active', true)
                       ->with(['products' => function ($q) {
                           $q->where('is_active', true)
-                            ->with(['variations', 'ingredients']);
+                            ->with(['variations', 'ingredients', 'allergens']);
                       }])
                       ->orderBy('sort_order');
             }])

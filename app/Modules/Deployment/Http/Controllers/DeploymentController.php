@@ -22,6 +22,8 @@ class DeploymentController extends Controller
         try {
             $commands = [
                 'migrate --force',
+                'db:seed --class=AllergenSeeder --force',
+                'migrate:allergens',
                 'optimize:clear',
                 'config:cache',
                 'route:cache',
