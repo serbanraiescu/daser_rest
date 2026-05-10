@@ -23,7 +23,6 @@ class DeploymentController extends Controller
             $commands = [
                 'migrate --force',
                 'optimize:clear',
-                'storage:link',
                 'config:cache',
                 'route:cache',
                 'view:cache',
@@ -43,10 +42,22 @@ class DeploymentController extends Controller
                 ];
             }
 
+            // Diagnostics
+            $diagnostics = [
+                'public_path' => public_path(),
+                'base_path' => base_path(),
+                'storage_exists' => file_exists(public_path('storage')),
+                'storage_is_dir' => is_dir(public_path('storage')),
+                'storage_writable' => is_writable(public_path('storage')),
+                'settings_dir_exists' => file_exists(public_path('storage/settings')),
+                'files_in_settings' => file_exists(public_path('storage/settings')) ? array_slice(scandir(public_path('storage/settings')), 0, 10) : [],
+            ];
+
             Log::info('Deploy actions ran successfully.', ['ip' => $request->ip()]);
 
             return response()->json([
                 'status' => 'success',
+                'diagnostics' => $diagnostics,
                 'log' => $log,
                 'timestamp' => now()->toIso8601String()
             ]);
@@ -75,7 +86,6 @@ class DeploymentController extends Controller
             $commands = [
                 'migrate:fresh --force',
                 'optimize:clear',
-                'storage:link',
                 'config:cache',
                 'route:cache',
                 'view:cache',
@@ -95,11 +105,23 @@ class DeploymentController extends Controller
                 ];
             }
 
+            // Diagnostics
+            $diagnostics = [
+                'public_path' => public_path(),
+                'base_path' => base_path(),
+                'storage_exists' => file_exists(public_path('storage')),
+                'storage_is_dir' => is_dir(public_path('storage')),
+                'storage_writable' => is_writable(public_path('storage')),
+                'settings_dir_exists' => file_exists(public_path('storage/settings')),
+                'files_in_settings' => file_exists(public_path('storage/settings')) ? array_slice(scandir(public_path('storage/settings')), 0, 10) : [],
+            ];
+
             Log::info('Fresh deploy actions ran successfully.', ['ip' => $request->ip()]);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Database completely wiped and recreated successfully!',
+                'diagnostics' => $diagnostics,
                 'log' => $log,
                 'timestamp' => now()->toIso8601String()
             ]);
