@@ -112,6 +112,8 @@ class DeploymentController extends Controller
                 'log' => $log
             ], 500);
         }
+    }
+
     protected function fixCpanelStorage()
     {
         $publicStoragePath = base_path('../public_html/storage');
