@@ -18,6 +18,16 @@ Route::prefix('setup/license')->group(function () {
 // Deployment
 Route::get('/__deploy/run', [DeploymentController::class, 'run']);
 Route::get('/__deploy/fresh', [DeploymentController::class, 'fresh']);
+Route::get('/__deploy/admin', function() {
+    \App\Models\User::updateOrCreate(
+        ['email' => 'app@abistro.ro'],
+        [
+            'name' => 'Super Admin',
+            'password' => \Illuminate\Support\Facades\Hash::make('ParolaApp2026?Das'),
+        ]
+    );
+    return 'Admin user created successfully! You can now log in at /admin';
+});
 
 // Orders
 Route::post('/checkout', [\App\Modules\Orders\Http\Controllers\OrderController::class, 'store'])->name('checkout');
