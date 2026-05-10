@@ -9,10 +9,22 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; }
+        :root {
+            --primary-color: {{ $settings->frontend_colors['primary'] ?? '#eab308' }};
+            --secondary-color: {{ $settings->frontend_colors['secondary'] ?? '#111827' }};
+            --bg-color: {{ $settings->frontend_colors['background'] ?? '#ffffff' }};
+            --text-color: {{ $settings->frontend_colors['text'] ?? '#1f2937' }};
+        }
+        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        .text-primary { color: var(--primary-color) !important; }
+        .bg-primary { background-color: var(--primary-color) !important; }
+        .border-primary { border-color: var(--primary-color) !important; }
+        .hover\:text-primary:hover { color: var(--primary-color) !important; }
+        .hover\:bg-primary:hover { background-color: var(--primary-color) !important; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased flex flex-col min-h-screen">
+<body class="antialiased flex flex-col min-h-screen">
+    <x-cookie-consent :settings="$settings" />
     <!-- Navbar -->
     <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,14 +39,14 @@
                     </a>
                 </div>
                 <div class="hidden md:flex space-x-8">
-                    <a href="{{ route('home') }}" class="text-gray-700 hover:text-orange-600 font-medium">{{ __('Home') }}</a>
-                    <a href="{{ route('home') }}#menu" class="text-gray-700 hover:text-orange-600 font-medium">{{ __('Menu') }}</a>
-                    <a href="{{ route('home') }}#about" class="text-gray-700 hover:text-orange-600 font-medium">{{ __('About') }}</a>
-                    <a href="{{ route('home') }}#contact" class="text-gray-700 hover:text-orange-600 font-medium">{{ __('Contact') }}</a>
+                    <a href="{{ route('home') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Home') }}</a>
+                    <a href="{{ route('menu.index') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Meniu') }}</a>
+                    <a href="{{ route('gallery') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Galerie') }}</a>
+                    <a href="{{ route('about') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Despre Noi') }}</a>
                 </div>
                 <div>
-                     <a href="{{ route('menu.index') }}" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-full font-semibold transition-all">
-                        Order Online
+                     <a href="{{ route('menu.index') }}" class="bg-primary hover:opacity-90 text-white px-6 py-2 rounded-full font-semibold transition-all shadow-lg shadow-primary/20">
+                        Comandă Online
                     </a>
                 </div>
             </div>
@@ -47,34 +59,50 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12 border-t border-gray-800">
+    <footer class="bg-gray-900 text-white py-16 border-t border-gray-800">
         <div class="max-w-7xl mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-center md:text-left">
-                <div>
-                    <h3 class="text-lg font-bold mb-4">{{ __('About Us') }}</h3>
-                    <p class="text-gray-400">{{ $settings->hero_description ?? 'Quality food, excellent service.' }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <div class="col-span-1 md:col-span-1">
+                    <h3 class="text-xl font-bold mb-6 text-white">{{ $settings->site_name ?? 'Daser' }}</h3>
+                    <p class="text-gray-400 leading-relaxed">{{ $settings->hero_description ?? 'Calitate și gust în fiecare porție.' }}</p>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold mb-4">{{ __('Contact') }}</h3>
-                    <p class="text-gray-400">{{ $settings->address ?? 'Address not set' }}</p>
-                    <p class="text-gray-400">{{ $settings->contact_phone ?? 'Phone not set' }}</p>
+                    <h3 class="text-lg font-bold mb-6 text-white">{{ __('Pagini') }}</h3>
+                    <ul class="space-y-4">
+                        <li><a href="{{ route('about') }}" class="text-gray-400 hover:text-primary transition-colors">Despre Noi</a></li>
+                        <li><a href="{{ route('gallery') }}" class="text-gray-400 hover:text-primary transition-colors">Galerie Foto</a></li>
+                        <li><a href="{{ route('menu.index') }}" class="text-gray-400 hover:text-primary transition-colors">Meniu Restaurant</a></li>
+                    </ul>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold mb-4">Social</h3>
+                    <h3 class="text-lg font-bold mb-6 text-white">{{ __('Legal') }}</h3>
+                    <ul class="space-y-4">
+                        <li><a href="{{ route('terms') }}" class="text-gray-400 hover:text-primary transition-colors">Termeni și Condiții</a></li>
+                        <li><a href="{{ route('gdpr') }}" class="text-gray-400 hover:text-primary transition-colors">GDPR</a></li>
+                        <li><a href="{{ route('privacy') }}" class="text-gray-400 hover:text-primary transition-colors">Confidențialitate</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-6 text-white">{{ __('Contact') }}</h3>
+                    <p class="text-gray-400 mb-2">{{ $settings->address ?? 'Adresă nesetată' }}</p>
+                    <p class="text-primary font-bold mb-4">{{ $settings->contact_phone ?? 'Telefon nesetat' }}</p>
                     @if($settings?->social_links)
-                        <div class="flex justify-center md:justify-start space-x-4">
+                        <div class="flex space-x-4">
                             @foreach($settings->social_links as $social)
-                                <a href="{{ $social['url'] }}" target="_blank" class="text-gray-400 hover:text-white transition-colors capitalize">
-                                    {{ $social['platform'] }}
+                                <a href="{{ $social['url'] }}" target="_blank" class="bg-gray-800 p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-gray-700 transition-all">
+                                    {{ substr($social['platform'], 0, 2) }}
                                 </a>
                             @endforeach
                         </div>
                     @endif
                 </div>
             </div>
-             <div class="border-t border-gray-800 pt-8 text-center">
-                 <p class="text-gray-500">&copy; {{ date('Y') }} {{ $settings->site_name ?? 'Daser Restaurant' }}. All rights reserved.</p>
-                 <p class="text-gray-700 text-sm mt-2">Powered by RestaurantOS</p>
+             <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
+                 <p class="text-gray-500">&copy; {{ date('Y') }} {{ $settings->site_name ?? 'Daser Restaurant' }}. Toate drepturile rezervate.</p>
+                 <div class="flex items-center gap-2 text-gray-700">
+                    <span>Powered by</span>
+                    <span class="font-bold">RestaurantOS</span>
+                 </div>
              </div>
         </div>
     </footer>

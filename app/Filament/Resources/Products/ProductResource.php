@@ -171,6 +171,7 @@ class ProductResource extends Resource
                                     ->columnSpanFull(),
                                 FileUpload::make('image')
                                     ->image()
+                                    ->disk('public')
                                     ->directory('products')
                                     ->columnSpanFull(),
                                 

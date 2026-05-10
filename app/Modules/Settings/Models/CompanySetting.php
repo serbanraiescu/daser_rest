@@ -28,6 +28,13 @@ class CompanySetting extends Model
         'vat_rates',
         'measurement_units',
         'default_language',
+        'frontend_colors',
+        'cookie_consent',
+        'about_content',
+        'terms_content',
+        'gdpr_content',
+        'privacy_content',
+        'gallery_content',
     ];
 
     protected $casts = [
@@ -35,5 +42,8 @@ class CompanySetting extends Model
         'opening_hours' => 'array',
         'vat_rates' => 'array',
         'measurement_units' => 'array',
+        'frontend_colors' => 'array',
+        'cookie_consent' => 'array',
+        'gallery_content' => 'array',
     ];
 }

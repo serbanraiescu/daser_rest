@@ -6,7 +6,14 @@ use App\Modules\Public\Http\Controllers\LandingOneController;
 use App\Modules\Deployment\Http\Controllers\DeploymentController;
 
 // Public Frontend
-Route::get('/', [LandingOneController::class, 'index'])->name('home');
+Route::get('/', [\App\Modules\Public\Http\Controllers\LandingOneController::class, 'index'])->name('home');
+
+// Static & Legal Pages
+Route::get('/despre-noi', [\App\Http\Controllers\PageController::class, 'about'])->name('about');
+Route::get('/termeni-si-conditii', [\App\Http\Controllers\PageController::class, 'terms'])->name('terms');
+Route::get('/gdpr', [\App\Http\Controllers\PageController::class, 'gdpr'])->name('gdpr');
+Route::get('/politica-de-confidentialitate', [\App\Http\Controllers\PageController::class, 'privacy'])->name('privacy');
+Route::get('/galerie-evenimente', [\App\Http\Controllers\PageController::class, 'gallery'])->name('gallery');
 Route::get('/menu', [\App\Modules\Public\Http\Controllers\MenuController::class, 'index'])->name('menu.index');
 
 // Licensing Routes
