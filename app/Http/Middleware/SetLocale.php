@@ -10,14 +10,20 @@ class SetLocale
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $settings = \App\Modules\Settings\Models\CompanySetting::first();
-        if ($settings && $settings->default_language) {
-            app()->setLocale($settings->default_language);
+        if ($request->is('setup/license*', '__deploy/*')) {
+            return $next($request);
+        }
+
+        try {
+            $settings = \App\Modules\Settings\Models\CompanySetting::first();
+            if ($settings && $settings->default_language) {
+                app()->setLocale($settings->default_language);
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist yet, just continue
         }
 
         return $next($request);
