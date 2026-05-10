@@ -25,7 +25,7 @@
 
     <!-- Menus Tabs (Sticky) -->
     <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm transition-all duration-300" :class="{'top-0': true}">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-center space-x-8 py-4 overflow-x-auto no-scrollbar">
                 @foreach($menus as $menu)
                     <button 
@@ -41,19 +41,19 @@
     </div>
 
     <!-- Menu Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         @foreach($menus as $menu)
-            <div x-show="activeMenu === {{ $menu->id }}">
+            <div x-show="activeMenu === {{ $menu->id }}" x-cloak>
                 
                 @if($menu->categories->isEmpty())
-                    <div class="text-center py-20">
+                    <div class="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                         <p class="text-gray-500 text-lg">{{ __('No items available in this menu yet.') }}</p>
                     </div>
                 @else
-                    <!-- Category Quick Links for this Menu -->
-                    <div class="flex flex-wrap gap-4 mb-12 justify-center">
+                    <!-- Category Quick Links -->
+                    <div class="flex flex-wrap gap-2 mb-16 justify-center">
                         @foreach($menu->categories as $category)
-                            <a href="#cat-{{ $category->id }}" class="px-4 py-2 bg-gray-50 rounded-full text-sm font-semibold text-gray-700 hover:bg-orange-100 hover:text-orange-600 transition-colors">
+                            <a href="#cat-{{ $category->id }}" class="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-primary hover:text-primary transition-all shadow-sm">
                                 {{ $category->name }}
                             </a>
                         @endforeach
@@ -62,65 +62,107 @@
                     <div class="space-y-24">
                         @foreach($menu->categories as $category)
                             <div id="cat-{{ $category->id }}" class="scroll-mt-32">
-                                <h2 class="text-3xl font-bold text-gray-900 mb-10 text-center relative">
-                                    <span class="bg-white px-6 relative z-10">{{ $category->name }}</span>
-                                    <div class="absolute inset-0 flex items-center justify-center -z-0">
-                                        <div class="w-full h-px bg-gray-200 max-w-md"></div>
-                                    </div>
-                                </h2>
+                                <div class="text-center mb-12">
+                                    <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4 inline-block relative px-10">
+                                        {{ $category->name }}
+                                        <div class="absolute top-1/2 left-0 w-8 h-px bg-primary/40"></div>
+                                        <div class="absolute top-1/2 right-0 w-8 h-px bg-primary/40"></div>
+                                    </h2>
+                                    @if($category->image)
+                                        <div class="mt-4 max-w-lg mx-auto h-32 rounded-2xl overflow-hidden opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
+                                            <img src="{{ asset('storage/' . $category->image) }}" class="w-full h-full object-cover">
+                                        </div>
+                                    @endif
+                                </div>
                                 
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div class="space-y-6">
                                     @foreach($category->products as $product)
-                                        <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 overflow-hidden flex flex-col h-full group">
-                                            @if($product->image)
-                                                <div class="h-48 overflow-hidden relative">
-                                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" 
-                                                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 {{ !$product->is_available ? 'grayscale opacity-80' : '' }}">
-                                                    @if(!$product->is_available)
-                                                        <div class="absolute inset-0 flex items-center justify-center bg-black/10">
-                                                            <span class="bg-black/60 text-white px-3 py-1 rounded text-sm font-bold">{{ __('Indisponibil') }}</span>
+                                        <div class="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-300 group">
+                                            <div class="flex flex-col md:flex-row gap-6">
+                                                
+                                                <!-- Product Info -->
+                                                <div class="flex-grow order-2 md:order-1">
+                                                    <div class="flex justify-between items-start mb-1">
+                                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
+                                                            {{ $product->name }}
+                                                            @if($product->is_frozen)
+                                                                <span class="ml-2 inline-block" title="Produs congelat">
+                                                                    <svg class="w-4 h-4 text-blue-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                                                </span>
+                                                            @endif
+                                                        </h3>
+                                                        <div class="hidden md:block text-xl font-black text-gray-900">
+                                                            {{ number_format($product->price, 2) }} <span class="text-sm font-normal text-gray-400">{{ $settings->currency ?? 'RON' }}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    @if($product->measurement_value)
+                                                        <div class="text-xs font-bold text-primary uppercase tracking-widest mb-2">
+                                                            {{ (float)$product->measurement_value }} {{ $product->measurement_unit }}
                                                         </div>
                                                     @endif
+
+                                                    <p class="text-gray-500 text-sm mb-3 leading-relaxed">
+                                                        {{ $product->description }}
+                                                    </p>
+
+                                                    <!-- Ingredients & Allergens Summary -->
+                                                    <div class="flex flex-wrap gap-2 items-center">
+                                                        @if($product->ingredients->isNotEmpty())
+                                                            <div class="text-[10px] uppercase font-bold text-gray-400">Ingrediente:</div>
+                                                            <div class="text-xs text-gray-500 italic">
+                                                                {{ $product->ingredients->take(4)->pluck('name')->implode(', ') }}@if($product->ingredients->count() > 4)...@endif
+                                                            </div>
+                                                        @endif
+
+                                                        @if($product->allergens->isNotEmpty())
+                                                            <div class="flex gap-1 ml-2">
+                                                                @foreach($product->allergens as $allergen)
+                                                                    <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>
+                                                                @endforeach
+                                                            </div>
+                                                        @elseif($product->allergens_legacy)
+                                                             <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">Alergeni</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
-                                            @endif
-                                            
-                    <div class="p-6 flex-grow flex flex-col">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900">{{ $product->name }}</h3>
-                                @if($product->measurement_value)
-                                    <span class="text-sm text-gray-500">{{ (float)$product->measurement_value }} {{ $product->measurement_unit }}</span>
-                                @endif
-                            </div>
-                            <span class="text-orange-600 font-bold text-lg whitespace-nowrap">
-                                {{ number_format($product->price, 2) }} {{ $settings->currency ?? 'RON' }}
-                            </span>
-                        </div>
-                        <p class="text-gray-500 text-sm mb-4 line-clamp-3 flex-grow">{{ $product->description }}</p>
-                        
-                        <button 
-                            @click="openModal({{ $product->toJson() }})"
-                            @if(!$product->is_available) disabled @endif
-                            class="w-full mt-auto font-semibold py-3 rounded-xl transition-all flex items-center justify-center space-x-2 
-                            {{ $product->is_available 
-                                ? 'bg-gray-100 hover:bg-orange-600 hover:text-white text-gray-900 group-btn' 
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                            }}"
-                        >
-                                                    @if($product->is_available)
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 group-btn-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                                        </svg>
-                                                        <span>{{ $product->variations->count() > 0 ? __('Customize') : __('Add to Order') }}</span>
+
+                                                <!-- Image Thumbnail (Optional) -->
+                                                @if($product->image)
+                                                    <div class="w-full md:w-32 h-48 md:h-32 flex-shrink-0 rounded-xl overflow-hidden order-1 md:order-2">
+                                                        <img src="{{ asset('storage/' . $product->image) }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                                                    </div>
+                                                @endif
+
+                                                <!-- Mobile Price & Global Action -->
+                                                <div class="flex items-center justify-between md:justify-end gap-4 order-3 w-full md:w-auto">
+                                                    <div class="md:hidden text-2xl font-black text-gray-900">
+                                                        {{ number_format($product->price, 2) }} <span class="text-sm font-normal text-gray-400">{{ $settings->currency ?? 'RON' }}</span>
+                                                    </div>
+                                                    
+                                                    @if($settings->enable_ordering && $product->is_available)
+                                                        <button 
+                                                            @click="openModal({{ $product->toJson() }})"
+                                                            class="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                                                        >
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                                            <span>{{ __('Adaugă') }}</span>
+                                                        </button>
                                                     @else
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                        </svg>
-                                                        <span>{{ __('Indisponibil') }}</span>
+                                                        <button 
+                                                            @click="openModal({{ $product->toJson() }})"
+                                                            class="bg-gray-100 text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2"
+                                                        >
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                            <span>{{ __('Vezi Detalii') }}</span>
+                                                        </button>
                                                     @endif
-                                                </button>
+                                                </div>
                                             </div>
                                         </div>
+
+
+
                                     @endforeach
                                 </div>
                             </div>
@@ -275,26 +317,26 @@
                 <!-- Footer Actions (Sticky Bottom) -->
                 <div class="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
                     <div class="flex items-center space-x-4 w-full">
-                        <div class="flex-shrink-0 flex items-center border border-gray-200 rounded-xl">
-                            <button @click="decreaseQuantity()" class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-l-xl transition">-</button>
-                            <span x-text="quantity" class="px-4 font-bold text-lg min-w-[30px] text-center"></span>
-                            <button @click="increaseQuantity()" class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-r-xl transition">+</button>
-                        </div>
-                        
                         @if($settings->enable_ordering)
-                        <button 
-                            @click="addToCart()"
-                            :disabled="selectedProduct?.variations?.length > 0 && !selectedVariation"
-                            :class="(selectedProduct?.variations?.length > 0 && !selectedVariation) ? 'bg-gray-300 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700 text-white'"
-                            class="flex-grow font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-orange-600/20"
-                        >
-                            <span>{{ __('Add to Order') }}</span>
-                            <span class="bg-white/20 px-2 py-0.5 rounded text-sm" x-text="getCurrentTotal().toFixed(2) + ' ' + currency"></span>
-                        </button>
+                            <div class="flex-shrink-0 flex items-center border border-gray-200 rounded-xl">
+                                <button @click="decreaseQuantity()" class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-l-xl transition">-</button>
+                                <span x-text="quantity" class="px-4 font-bold text-lg min-w-[30px] text-center"></span>
+                                <button @click="increaseQuantity()" class="px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-r-xl transition">+</button>
+                            </div>
+                            
+                            <button 
+                                @click="addToCart()"
+                                :disabled="selectedProduct?.variations?.length > 0 && !selectedVariation"
+                                :class="(selectedProduct?.variations?.length > 0 && !selectedVariation) ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary hover:opacity-90 text-white'"
+                                class="flex-grow font-bold py-3 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-primary/20"
+                            >
+                                <span>{{ __('Adaugă în Coș') }}</span>
+                                <span class="bg-white/20 px-2 py-0.5 rounded text-sm" x-text="getCurrentTotal().toFixed(2) + ' ' + currency"></span>
+                            </button>
                         @else
-                        <button disabled class="flex-grow font-bold py-3 rounded-xl bg-gray-400 text-white cursor-not-allowed">
-                            Comenzile sunt oprite
-                        </button>
+                            <button @click="closeModal()" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-all">
+                                {{ __('Închide') }}
+                            </button>
                         @endif
                     </div>
                 </div>
@@ -416,7 +458,7 @@
                     <button 
                         @click="sendOrder()"
                         :disabled="cart.length === 0 || isLoading"
-                        class="w-full bg-orange-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                        class="w-full bg-primary hover:opacity-90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
                     >
                         <svg x-show="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
