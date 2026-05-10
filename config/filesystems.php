@@ -38,9 +38,7 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => (str_contains(base_path(), 'public_html') || file_exists(base_path('../public_html'))) 
-                ? base_path('../public_html/storage') 
-                : storage_path('app/public'),
+            'root' => public_path('storage'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,

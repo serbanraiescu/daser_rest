@@ -2,21 +2,37 @@
 
 @section('content')
     <!-- Hero Section -->
-    <div class="relative flex items-center min-h-[80vh]" 
-         style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('{{ $settings?->hero_background_image ? asset('storage/' . $settings->hero_background_image) : 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974' }}'); background-size: cover; background-position: center;">
+    <div class="relative flex items-center min-h-[90vh] overflow-hidden" 
+         style="background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url('{{ $settings?->hero_background_image ? asset('storage/' . $settings->hero_background_image) : 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974' }}'); background-size: cover; background-position: center;">
+        
+        <!-- Animated Background Elements -->
+        <div class="absolute inset-0 z-0">
+            <div class="absolute top-1/4 -left-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-1/4 -right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left relative z-10 w-full">
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-                {{ $settings->hero_title ?? __('Taste the Extraordinary') }}
+            <div class="inline-block px-4 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 text-sm font-bold tracking-widest uppercase mb-6 animate-fade-in">
+                {{ $settings->site_name ?? 'RestaurantOS' }}
+            </div>
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
+                @php
+                    $title = $settings->hero_title ?? __('Taste the Extraordinary');
+                    $parts = explode(' ', $title);
+                    $last = array_pop($parts);
+                @endphp
+                {!! implode(' ', $parts) !!} <span class="text-primary">{{ $last }}</span>
             </h1>
-            <p class="text-lg md:text-2xl text-gray-200 mb-10 max-w-2xl font-light">
+            <p class="text-xl md:text-2xl text-gray-200 mb-12 max-w-2xl font-light leading-relaxed">
                 {{ $settings->hero_description ?? __('Savor artisanal dishes crafted with passion and the finest local ingredients.') }}
             </p>
-            <div class="flex flex-col md:flex-row gap-4 justify-center md:justify-start">
-                <a href="{{ route('menu.index') }}" class="bg-orange-600 hover:bg-orange-700 text-white text-lg px-8 py-4 rounded-full font-bold transition-transform hover:scale-105 shadow-lg">
-                    {{ __('View Full Menu') }}
+            <div class="flex flex-col md:flex-row gap-6 justify-center md:justify-start">
+                <a href="{{ route('menu.index') }}" class="bg-primary text-white text-xl px-10 py-5 rounded-2xl font-bold transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary/30 flex items-center justify-center gap-3 group">
+                    <span>{{ __('Vezi Meniu Complet') }}</span>
+                    <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </a>
-                <a href="#contact" class="bg-white/10 hover:bg-white/20 backdrop-blur text-white text-lg px-8 py-4 rounded-full font-bold border border-white/30 transition-all">
-                    {{ __('Book a Table') }}
+                <a href="{{ route('gallery') }}" class="bg-white/10 hover:bg-white/20 backdrop-blur-xl text-white text-xl px-10 py-5 rounded-2xl font-bold border border-white/20 transition-all flex items-center justify-center">
+                    {{ __('Galerie Foto') }}
                 </a>
             </div>
         </div>
@@ -33,7 +49,7 @@
                     <h2 class="text-3xl font-bold text-gray-900 mb-8">{{ __('Visit Us') }}</h2>
                     <p class="text-xl text-gray-600 mb-4">{{ $settings->address ?? '123 Culinary Ave, Food City' }}</p>
                     <p class="text-xl text-gray-600 mb-8">
-                        <a href="tel:{{ $settings->contact_phone ?? '' }}" class="hover:text-orange-600 transition-colors">
+                        <a href="tel:{{ $settings->contact_phone ?? '' }}" class="hover:text-primary transition-colors">
                             {{ $settings->contact_phone ?? '+40 700 123 456' }}
                         </a>
                     </p>
@@ -41,7 +57,7 @@
                     @if($settings?->social_links)
                     <div class="flex space-x-4 mt-6">
                         @foreach($settings->social_links as $social)
-                            <a href="{{ $social['url'] }}" target="_blank" class="text-gray-400 hover:text-orange-600 transform hover:scale-110 transition-all">
+                            <a href="{{ $social['url'] }}" target="_blank" class="text-gray-400 hover:text-primary transform hover:scale-110 transition-all">
                                 <span class="capitalize font-semibold">{{ $social['platform'] }}</span>
                             </a>
                         @endforeach
@@ -52,7 +68,7 @@
                 <!-- Opening Hours -->
                 <div class="bg-gray-50 p-8 rounded-2xl shadow-sm border border-gray-100">
                     <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                        <svg class="h-6 w-6 text-orange-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="h-6 w-6 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         {{ __('Opening Hours') }}

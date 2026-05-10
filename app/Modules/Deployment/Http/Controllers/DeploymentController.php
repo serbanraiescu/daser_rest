@@ -116,14 +116,28 @@ class DeploymentController extends Controller
 
     protected function fixCpanelStorage()
     {
-        $publicStoragePath = base_path('../public_html/storage');
+        $publicStoragePath = public_path('storage');
         
+        // Dacă e link (scurtătură), îl ștergem pentru a face loc unui folder real
         if (file_exists($publicStoragePath) && is_link($publicStoragePath)) {
-            unlink($publicStoragePath);
+            @unlink($publicStoragePath);
         }
 
+        // Creăm folderul dacă nu există
         if (!file_exists($publicStoragePath)) {
-            mkdir($publicStoragePath, 0755, true);
+            @mkdir($publicStoragePath, 0777, true);
+        }
+        
+        // Ne asigurăm că are permisiuni de scriere
+        @chmod($publicStoragePath, 0777);
+
+        // Creăm și subfolderele uzuale pentru a fi siguri
+        foreach(['products', 'categories', 'settings', 'gallery'] as $sub) {
+            $subPath = $publicStoragePath . '/' . $sub;
+            if (!file_exists($subPath)) {
+                @mkdir($subPath, 0777, true);
+            }
+            @chmod($subPath, 0777);
         }
     }
 }
