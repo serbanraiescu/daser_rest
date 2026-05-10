@@ -23,6 +23,7 @@ class DeploymentController extends Controller
             $commands = [
                 'migrate --force',
                 'optimize:clear',
+                'storage:link',
                 'config:cache',
                 'route:cache',
                 'view:cache',
