@@ -30,6 +30,8 @@ class DeploymentController extends Controller
                 'queue:restart',
             ];
 
+            $this->fixCpanelStorage();
+
             foreach ($commands as $cmd) {
                 $start = microtime(true);
                 Artisan::call($cmd);
@@ -80,6 +82,8 @@ class DeploymentController extends Controller
                 'queue:restart',
             ];
 
+            $this->fixCpanelStorage();
+
             foreach ($commands as $cmd) {
                 $start = microtime(true);
                 Artisan::call($cmd);
@@ -107,6 +111,17 @@ class DeploymentController extends Controller
                 'message' => $e->getMessage(),
                 'log' => $log
             ], 500);
+        }
+    protected function fixCpanelStorage()
+    {
+        $publicStoragePath = base_path('../public_html/storage');
+        
+        if (file_exists($publicStoragePath) && is_link($publicStoragePath)) {
+            unlink($publicStoragePath);
+        }
+
+        if (!file_exists($publicStoragePath)) {
+            mkdir($publicStoragePath, 0755, true);
         }
     }
 }
