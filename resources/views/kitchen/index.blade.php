@@ -113,10 +113,21 @@
             connectionError: false,
             pollInterval: null,
             soundRepeatInterval: null,
+            audioAlert: null,
 
             startApp() {
                 this.soundEnabled = true; // User gesture allows audio later
                 this.showStartOverlay = false;
+                
+                // Preload audio once to guarantee fast playing without network delays
+                try {
+                    this.audioAlert = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+                    this.audioAlert.preload = "auto";
+                    this.audioAlert.load();
+                } catch (e) {
+                    console.error("Failed to preload audio:", e);
+                }
+
                 this.fetchOrders();
                 
                 // Start Polling
@@ -158,8 +169,8 @@
                         for (const newOrder of newOrders) {
                             const oldOrder = this.orders.find(o => o.id === newOrder.id);
                             if (oldOrder) {
-                                const oldItemIds = oldOrder.items.map(item => item.id);
-                                const hasAddedItem = newOrder.items.some(item => !oldItemIds.includes(item.id));
+                                const oldItemIds = (oldOrder.items || []).map(item => item.id);
+                                const hasAddedItem = (newOrder.items || []).some(item => !oldItemIds.includes(item.id));
                                 if (hasAddedItem) {
                                     hasNewItems = true;
                                     break;
@@ -222,19 +233,38 @@
             
             toggleSound() {
                 this.soundEnabled = !this.soundEnabled;
-                if(this.soundEnabled) this.playSound();
+                if (this.soundEnabled) {
+                    if (!this.audioAlert) {
+                        try {
+                            this.audioAlert = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+                            this.audioAlert.preload = "auto";
+                            this.audioAlert.load();
+                        } catch (e) {
+                            console.error("Failed to preload audio in toggleSound:", e);
+                        }
+                    }
+                    this.playSound();
+                }
             },
 
             playSound() {
-                const audio = document.getElementById('alert-sound');
-                if (audio) {
-                    audio.currentTime = 0;
-                    audio.play().catch(e => console.warn('Audio blocked:', e));
+                if (this.audioAlert) {
+                    this.audioAlert.currentTime = 0;
+                    this.audioAlert.play().catch(e => console.warn('Audio play blocked:', e));
+                } else {
+                    const audio = document.getElementById('alert-sound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.warn('Fallback audio blocked:', e));
+                    }
                 }
             },
             
             isAddedLater(item, order) {
                 if (!item.created_at || !order.created_at) return false;
+                // Only consider it "added later" if the item status is 'pending' (unacknowledged)
+                if (item.status !== 'pending') return false;
+                
                 const itemTime = new Date(item.created_at).getTime();
                 const orderTime = new Date(order.created_at).getTime();
                 return (itemTime - orderTime) > 30000; // 30 seconds
