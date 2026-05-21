@@ -1,9 +1,27 @@
+@php
+    $logoBlackPath = base_path('public/images/daser_tech_logo_black.png');
+    $logoBlackBase64 = '';
+    if (file_exists($logoBlackPath)) {
+        $logoBlackBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoBlackPath));
+    }
+
+    $logoWhitePath = base_path('public/images/daser_tech_logo_white.png');
+    $logoWhiteBase64 = '';
+    if (file_exists($logoWhitePath)) {
+        $logoWhiteBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoWhitePath));
+    }
+@endphp
+
 <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 text-center flex flex-col items-center gap-1">
     <span class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-semibold">Powered by</span>
     <div class="mt-1">
-        <!-- Light Mode Logo (Black) -->
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAEtCAYAAACWFxLMAAAQAElEQVR4AeydB5wcZfnH39nLJaGF5JIAAioWiijYG2LBAih2JCQB5I8FUAFFaSEBV0mhCRYsqHRIICh2LCBgL9hAURQLoiKY5JJQk9zdzv/3DVy4JHe3M7szu7O7v/s8z72zs+887/t+Z3bmfZ+3TGlRz+zY2pEMvrl4ypydQ7Z/0eIJ5Z7Le8oTLphywhaDunhqefPF25+zyeJQHlsO5VK2SdqaCXQcgUglHivdTLrFEJ2g7ZdJD5eeK/2O9E/Se6UPSSvS+FHtU7hM+g/pT6UXSk+QvkH6RCm2Bm1vrs/jpV1SS2cQ4Fxzzjn3XAdcDy9Q0U+SXi39vfR+6dBravDachhCOzLYTue7HtlNB39f2o5sXKb2ueY/pWu0Hhmjg309tM/1UO1c9ut8/0/6E+kXpe+Q7iDluYnyDKW+Rr1NuwsjwY2x4pyLls/J4nBAaWBM33e7Qt/KTSvd9w3qwEDfPQMP9V7XP2nNqTtOXPNyHA+XyfmAXjFx9hO/MrE8sRzsGGj5C8AFyIvAJjK8vRSHHbqntk+R3ixdLr3vUV2p8AfS86UfkO4j3UW6lRQbkcJBoZLSow88qF6s8DDpGdKvS++UYmvQ7n/0GQfBWxQ+TUoenqxwknSoTX20tCgBziOVlScp/5zfNyqkob9EIdcB18MvtL1A+jbpM6RUbDhOmxYTMAETMAET6DgCOMunqtR7SN8pvUBKxwrPTfRf+ny6lHoWz1bqcuP0uckSgh0ATT8FHZEB9VTGL4miaHapFN0wUIlvH/Oo6vO3Hy6tKe8yac0+iybOecXCSbP3XNwza1dGEcQhjjqCjgtpAusT4OGwo3a9VPoKKY3zLym8/VH9ocI5UhrjPHy0mavQ+ztDKdAg/KNC8vEjhR+V7i0lj/QO4xDQR0sLEehWXp8jfbX0WOlNUs7vNQpfL2UUgAKLCZiACZiACZhASgITFZ9nKyMEBp+tM7WPetNTFDannaOE7QAQBEszCcRPi0L0/jiKrg2l+MYoCt8bCKULusKaY6+cPOfgRZNOnolT4GtTTqB3qpkZddomkCcBelPxINPQfpcSOk/6PemN0k9LXygtkmyrzBwlZZoBefyKto+X8mCj4fh4bUdSSzEJMCpkmrL2f9LFUq61jyh8gtRiAiZgAiZgAiaQPYHnyyQjKqk3fULbB0tfJ21EZ46SeUT4bwcAFKxFIsBQ5ReFEJVDHC4NUXRFiMJnHhoYO3tRz+zjrpw8+6iFPbNefNEOZfdMBf+1OIFI+X+e9IPSWVLmHl6hkMY/PeutdI3jEKAM5J+H22kqx3HSt0q3lFqKQYB53IwoKSs7l0s/L6UXQoHFBEzABEzABEygQQT2UzqXSpk2MFhfYr0A7cpV1hq3A2AtBv8rMgG1knYLUXyi8nhWHIezQiidPX7lmrMXTZozf9GUWW9kuoC+s5hAqxCgQUxv+dnK8KCerG2GYkcKW12YD3eoCnGmlPJ97NEQZ4c2LU0gQMP/SKU7eC7eo22G/yuwmIAJmIAJmIAJNInANkqX9XWoL1FvepM+5+gIkHWJHQCCYGkpAuPVQtojRNH75BQ4PlRKZ4yJ11yyqGf2wqsmn3JwOXgxwZY6m52VWYbxf1xFvkQ6W0rP/8sVRtJ2FRaVY2GcD6mAjHC4TCFTB1iEUJuWnAnAmfn9rE5Mr" class="h-6 w-auto block dark:hidden" alt="Daser Technologies">
-        <!-- Dark Mode Logo (White) -->
-        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAEtCAYAAACWFxLMAAAQAElEQVR4AeydB3wcxdnGZ/buJLnbcgFM7x0SSggllIQaejO2aR8l9F5d4QA3ehJKgNCLbUwCJCGUUEMgjU6A0ELvtiR3S7q73e95ZMu4SLq9u927vbtHv/fV7O3OvvPOf9u0nXWm1I/2pFXJ4JFpA8asb4L9s9N6J+vvrU/2vm3ABb3addrAZM9pq1zTbZpJ1iRN0gk2SVkTgeoi4Hmeffvtt2u++eabHljutYT2TqVSO2YymROw7lrXdR9H+F+E3yKcD3Wh7ZLCQgP0Y+jfobdDL4DuC10d2hvabrsnluugseoiXb255bGG8pjz2PM86N3a2vojnFsjsP4B6H9wXs2BLnlOYbWkggmsXMgVAS6bQp+GSkQgygSuK/A8j0c5c/ItcAJpPAe/g9UXobdCj12wYMEaCPncpPIZWoPftpDzKoR9jSpjYVCtUpvTzKFOJp56ImZSs7q7idntmsmkvsnMb3wy3a/1onX7tu7Ehod70PhAva/v6NUf6pvsmzRqGKjS00bZzkLg888/74aHxyrQ9anpdHqHjTbaaOwKK6zwEnZtgs5epLPi8fhfHce5Gb/PstbugXADhIMQdoNaaLvEsVAPXQO6LfQY6OXQP0I/gc6CttlFml/iAXc7fh/Y0tKyIX6v39zcvBbCftAlbSKKpBwJ8DhCWVhZEyEbhvdD+ADyMh3K82BWIpH4F86tifh9CHQTnFc9oTr+gCERAREQARGoSgIxPAcHIufbQY+D3lZXV/cxQj43qZ+j/DQJv7fFM5VlOJblavG7xGKMGgBKfgiqwoEexnjb4yIZ7Tj2mYzrvRtfpPj92AKnNblBv9Y9pvQds/PkfqN3mFY/ciOOIvCMZ6uCjjIpAksQwEOiFhXsddGb/xMs7zx48GBWzn+HKO9SUcl/HuEY6IbQ0Hvlcd32RsVvGNJ6oKam5h2E7yL8G8JLobvTR+iPoP3wW1JGBHDMEtAt4PKu0LOhz0F5nj2I474PluugEhEQAREQAREQgQAJoNxEa1vjH0dUstz0KywfgWfxz6Ghd+YgrcXCBTUAkII0SgQ4VPnHxtik8czdxtr7jDU3zs/UjJ5SP/q8qf1Hnza5fuS2d6yRVM+U0V85E8AN37a2tm6F8BzkYySU7x7eh/B6PCh2R1hO5/hgNFQwD/SfD7fL4P95yNtB0D5YlkSAAI7FylCOKEnCnXuht0DXhkpEQAREQAREQASKR2BvJHU39DZoe3mpBsthS5t9NQC0YdC/KBOwxmxqrHchfLzS88yVxjhX1c1qvWpKvzETpgwYuR9fF8A2iQiUBQFUwPpAz4ezV6GX/yqG0FFQDsW2CMtd+D7c0cjEFVDm72rk9yo2duC3pAQEwJ8V/5Nc170ayfOYnIwwAZWIgAiIgAiIgAiUjsCKSJrz6/DZfAWe1/tzomesC0kWmlUDwEIO+l8+BOpQQ9rOWHsqGgXON65zedxrvWtK/ejJ9/cfe0TSaDLB8jmU1eUpKsDb4Mb+S+T6Luho6Dno6d8JoYVWqqyJjHFinHMTicR1yP890NOgnIQQmyRhEiBnKN/vvxXpJB3HOQwhJ39EIBEBERABERABEYgAAZYDWV46A75cvsEGG/wOCwIDzlfCwUBZeHllUE0ADQCoUUEQEAL37Z4f1jXW/EdeQx22Y8dFDe/34vDlh0T9qB5HPlbUv33e2E5F3m+AeVa+wKflJ+O7BzkfD9qP92/sWfsItr7g0D/h593C30E39F/237Dq2gAAYN8rdgK/U4TtTshz4Y8d7MNCsA2/x3O5/X297P/Nf//L/mG55XN5qf+d+/Y32OOHkPl9K/b4tY9G4cfP/o91wF6pWJ43lYQdFqfLts2hD447G4eHwZ5HnvcD6BzoXF6F/n+R3gudLwAAAABJRU5ErkJggg==" class="h-6 w-auto hidden dark:block" alt="Daser Technologies">
+        @if($logoBlackBase64)
+            <!-- Light Mode Logo (Black) -->
+            <img src="{{ $logoBlackBase64 }}" class="h-6 w-auto block dark:hidden" alt="Daser Technologies">
+        @endif
+        @if($logoWhiteBase64)
+            <!-- Dark Mode Logo (White) -->
+            <img src="{{ $logoWhiteBase64 }}" class="h-6 w-auto hidden dark:block" alt="Daser Technologies">
+        @endif
     </div>
 </div>
