@@ -77,7 +77,7 @@
             try {
                 data = JSON.parse(text);
             } catch (err) {
-                console.error("Response was not JSON:", text);
+                console.error('Response was not JSON:', text);
                 let errorMsg = text.substring(0, 300);
                 if (text.includes('<title>')) {
                     const match = text.match(/<title>(.*?)<\/title>/);
