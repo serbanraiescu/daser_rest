@@ -432,7 +432,7 @@ class WaiterController extends Controller
                     DB::raw('SUM(order_items.quantity) as total_qty'),
                     DB::raw('SUM(order_items.price * order_items.quantity) as total_value')
                 )
-                ->groupBy('order_items.name', 'order_items.product_id')
+                ->groupBy('order_items.name')
                 ->orderBy('total_qty', 'desc')
                 ->get();
 

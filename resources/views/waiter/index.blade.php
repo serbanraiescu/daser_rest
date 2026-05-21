@@ -72,7 +72,23 @@
         this.reportData = null;
         try {
             const response = await fetch('/waiter/api/daily-report');
-            const data = await response.json();
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (err) {
+                console.error("Response was not JSON:", text);
+                let errorMsg = text.substring(0, 300);
+                if (text.includes('<title>')) {
+                    const match = text.match(/<title>(.*?)<\/title>/);
+                    if (match && match[1]) {
+                        errorMsg = match[1];
+                    }
+                }
+                alert('Eroare la încărcarea raportului: ' + errorMsg);
+                this.showReportModal = false;
+                return;
+            }
             if (data.success) {
                 this.reportData = data.report;
             } else {
@@ -80,7 +96,7 @@
                 this.showReportModal = false;
             }
         } catch (e) {
-            alert('Eroare la încărcarea raportului.');
+            alert('Eroare de rețea sau de sistem: ' + e.message);
             this.showReportModal = false;
         } finally {
             this.isLoadingReport = false;
