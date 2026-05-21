@@ -65,3 +65,10 @@ Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class])->group(func
     Route::get('/kitchen/api/orders', [\App\Modules\Kitchen\Http\Controllers\KitchenController::class, 'getOrders'])->name('kitchen.api.orders');
     Route::post('/kitchen/api/orders/{order}/status', [\App\Modules\Kitchen\Http\Controllers\KitchenController::class, 'updateStatus'])->name('kitchen.api.update-status');
 });
+
+// Admin Reports (A4 Printing & PDF)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/reports/print', [\App\Http\Controllers\AdminReportController::class, 'printReport'])->name('admin.reports.print');
+    Route::get('/admin/reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfReport'])->name('admin.reports.pdf');
+});
+
