@@ -23,6 +23,10 @@
     showMobileCart: false,
     searchQuery: '',
 
+    // Daily Report State
+    showReportModal: false,
+    reportData: null,
+    isLoadingReport: false,
 
     // Fiscal Data State
     isFiscal: false,
@@ -59,6 +63,27 @@
             this.showOrderModal = false;
         } finally {
             this.isLoadingOrder = false;
+        }
+    },
+
+    async openReport() {
+        this.showReportModal = true;
+        this.isLoadingReport = true;
+        this.reportData = null;
+        try {
+            const response = await fetch('/waiter/api/daily-report');
+            const data = await response.json();
+            if (data.success) {
+                this.reportData = data.report;
+            } else {
+                alert('Eroare: ' + data.message);
+                this.showReportModal = false;
+            }
+        } catch (e) {
+            alert('Eroare la încărcarea raportului.');
+            this.showReportModal = false;
+        } finally {
+            this.isLoadingReport = false;
         }
     },
 
@@ -295,10 +320,16 @@
             </div>
             
             <!-- Logout (Right) -->
-            <div class="flex items-center space-x-2 shrink-0 border-l border-gray-100 pl-4">
+            <div class="flex items-center space-x-2 shrink-0 border-l border-gray-100 pl-4 print:hidden">
                 <span class="text-[10px] font-bold text-gray-300 hidden sm:block uppercase tracking-widest">
                     {{ Session::get('staff_name') }}
                 </span>
+                <button @click="openReport()" class="flex items-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-900 hover:bg-gray-100 hover:border-gray-200 transition-all">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Raport Zilnic</span>
+                </button>
                 <form action="{{ route('staff.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="p-2 text-gray-300 hover:text-red-500 transition-colors">
@@ -867,6 +898,142 @@
         </div>
     </div>
 
+    <!-- Daily Report Modal (SPA Fluid) -->
+    <div x-show="showReportModal" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 print:static print:z-auto print:block print:p-0"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-cloak>
+        <div class="fixed inset-0 bg-gray-900/80 backdrop-blur-md print:hidden" @click="showReportModal = false"></div>
+        
+        <div class="bg-white w-full max-w-2xl h-[85vh] md:h-auto rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col print:h-auto print:shadow-none print:rounded-none print:w-full print:overflow-visible">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10 print:hidden">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-orange-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900">Raport Zilnic Ospătar</h2>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest" x-text="reportData ? reportData.staff_name + ' • ' + reportData.date : ''"></p>
+                    </div>
+                </div>
+                <button @click="showReportModal = false" class="p-2 bg-gray-50 rounded-xl text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="flex-grow overflow-y-auto p-6 md:p-8 space-y-6 print:overflow-visible print:p-0">
+                <template x-if="isLoadingReport">
+                    <div class="py-20 flex flex-col items-center justify-center text-gray-400 print:hidden">
+                        <svg class="w-10 h-10 animate-spin mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <p class="text-sm font-bold uppercase tracking-widest animate-pulse">Se încarcă raportul...</p>
+                    </div>
+                </template>
+
+                <template x-if="reportData && !isLoadingReport">
+                    <div class="space-y-6">
+                        <!-- Print header (only visible when printing) -->
+                        <div class="hidden print:block border-b border-gray-200 pb-4 mb-6">
+                            <h1 class="text-2xl font-black text-gray-900">Raport Zilnic Ospătar</h1>
+                            <p class="text-sm font-bold text-gray-600 uppercase tracking-wider mt-1" x-text="'Ospătar: ' + reportData.staff_name"></p>
+                            <p class="text-xs text-gray-450 mt-0.5" x-text="'Data raportului: ' + reportData.date"></p>
+                        </div>
+
+                        <!-- KPI metrics -->
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center print:border-gray-200 print:bg-white print:p-2">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest print:text-[8px] print:text-gray-500">Total Comenzi</span>
+                                <span class="text-2xl font-black text-gray-900 mt-1 print:text-lg" x-text="reportData.total_orders_count"></span>
+                            </div>
+                            <div class="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center print:border-gray-200 print:bg-white print:p-2">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest print:text-[8px] print:text-gray-500">Comenzi Plătite</span>
+                                <span class="text-2xl font-black text-gray-900 mt-1 print:text-lg" x-text="reportData.paid_orders_count"></span>
+                            </div>
+                            <div class="bg-orange-50/35 p-4 rounded-3xl border border-orange-100/50 flex flex-col items-center text-center print:border-gray-200 print:bg-white print:p-2">
+                                <span class="text-[10px] font-bold text-orange-600 uppercase tracking-widest print:text-[8px] print:text-gray-500">Total Încasat</span>
+                                <span class="text-2xl font-black text-orange-600 mt-1 print:text-lg print:text-black" x-text="reportData.total_revenue.toFixed(2) + ' lei'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Split -->
+                        <div class="bg-gray-50/30 border border-gray-100 rounded-3xl p-5 space-y-3 print:border-gray-200 print:bg-white print:p-3">
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest print:text-[9px] print:text-black">Metode de Plată (Comenzi Încasate)</h3>
+                            <div class="grid grid-cols-2 gap-4 pt-1">
+                                <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-gray-100/60 print:border-gray-200 print:p-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center print:hidden">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                        </div>
+                                        <span class="text-xs font-bold text-gray-500 uppercase print:text-[10px]">Cash</span>
+                                    </div>
+                                    <span class="text-sm font-black text-gray-900 print:text-xs" x-text="reportData.cash_revenue.toFixed(2) + ' lei'"></span>
+                                </div>
+                                <div class="flex justify-between items-center bg-white p-3 rounded-2xl border border-gray-100/60 print:border-gray-200 print:p-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center print:hidden">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                        </div>
+                                        <span class="text-xs font-bold text-gray-500 uppercase print:text-[10px]">Card</span>
+                                    </div>
+                                    <span class="text-sm font-black text-gray-900 print:text-xs" x-text="reportData.card_revenue.toFixed(2) + ' lei'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products Sold Table -->
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest print:text-[9px] print:text-black">Produse Vândute</h3>
+                            
+                            <div class="border border-gray-100 rounded-3xl overflow-hidden bg-white print:border-gray-200 print:rounded-none">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-50/50 border-b border-gray-100 print:border-gray-200 print:bg-white">
+                                            <th class="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest print:text-[8px] print:p-2 print:text-black">Produs</th>
+                                            <th class="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center print:text-[8px] print:p-2 print:text-black">Cantitate</th>
+                                            <th class="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right print:text-[8px] print:p-2 print:text-black">Valoare</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 print:divide-gray-200">
+                                        <template x-if="reportData.products_sold.length === 0">
+                                            <tr>
+                                                <td colspan="3" class="p-8 text-center text-xs text-gray-400 font-bold uppercase tracking-wider print:p-4">Nu s-a vândut niciun produs astăzi</td>
+                                            </tr>
+                                        </template>
+                                        <template x-for="item in reportData.products_sold" :key="item.name">
+                                            <tr class="hover:bg-gray-50/30 transition-colors">
+                                                <td class="p-4 text-xs font-bold text-gray-900 print:p-2 print:text-[10px]" x-text="item.name"></td>
+                                                <td class="p-4 text-xs font-black text-gray-600 text-center print:p-2 print:text-[10px]" x-text="'x' + item.total_qty"></td>
+                                                <td class="p-4 text-xs font-black text-gray-900 text-right print:p-2 print:text-[10px]" x-text="parseFloat(item.total_value).toFixed(2) + ' lei'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center rounded-b-[2.5rem] print:hidden">
+                <button @click="showReportModal = false" class="py-3 px-6 text-gray-400 font-bold hover:text-gray-600 transition-colors text-[10px] uppercase tracking-widest">
+                    Închide
+                </button>
+                <button @click="window.print()" class="bg-gray-900 text-white py-3 px-6 rounded-xl font-black shadow-lg shadow-gray-900/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-widest flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    <span>Printează</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('waiter-map-container');
@@ -907,5 +1074,43 @@
 <style>
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @media print {
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        
+        .bg-white.border-b.border-gray-200.sticky,
+        .max-w-7xl,
+        #waiter-map-container,
+        .fixed.inset-0.bg-gray-900\/80,
+        .bg-gray-900\/60,
+        .backdrop-blur-md,
+        .print\:hidden {
+            display: none !important;
+        }
+
+        .fixed.inset-0.z-50.flex {
+            position: relative !important;
+            z-index: auto !important;
+            display: block !important;
+            padding: 0 !important;
+            background: white !important;
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        .bg-white.w-full.max-w-2xl {
+            max-width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            height: auto !important;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+    }
 </style>
 @endsection
