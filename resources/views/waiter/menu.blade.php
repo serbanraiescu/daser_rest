@@ -12,8 +12,21 @@
     showVariations: false,
     selectedProduct: null,
     showMobileCart: false,
+    searchQuery: '',
 
     getProducts() {
+        if (this.searchQuery && this.searchQuery.trim() !== '') {
+            const query = this.searchQuery.toLowerCase().trim();
+            let results = [];
+            this.categories.forEach(cat => {
+                cat.products.forEach(prod => {
+                    if (prod.name.toLowerCase().includes(query)) {
+                        results.push(prod);
+                    }
+                });
+            });
+            return results;
+        }
         const cat = this.categories.find(c => c.id === this.activeCategoryId);
         return cat ? cat.products : [];
     },
@@ -126,27 +139,51 @@
     <div class="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Products Grid -->
         <div class="space-y-6 lg:col-span-2">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-                <template x-for="prod in getProducts()" :key="prod.id">
-                    <button @click="selectProduct(prod)"
-                            class="flex flex-row items-center text-left bg-white border border-gray-100 rounded-2xl p-3 shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-[0.98] group overflow-hidden w-full relative">
-                        <template x-if="prod.image">
-                            <div class="w-12 h-12 rounded-xl shrink-0 overflow-hidden bg-gray-50 mr-3">
-                                <img :src="'/storage/' + prod.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            <!-- Search Bar -->
+            <div class="relative shrink-0">
+                <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+                <input type="text" 
+                       x-model="searchQuery" 
+                       placeholder="Caută un produs..." 
+                       class="w-full bg-gray-50 border-0 rounded-2xl pl-12 pr-10 py-3.5 text-sm focus:ring-2 focus:ring-orange-500 placeholder-gray-400 shadow-inner">
+                <button x-show="searchQuery !== ''" 
+                        @click="searchQuery = ''" 
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Products List Container -->
+            <div>
+                <div x-show="getProducts().length === 0" class="flex flex-col items-center justify-center py-20 text-gray-400" x-cloak>
+                    <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-sm font-bold uppercase tracking-widest text-center" x-text="searchQuery !== '' ? 'Niciun produs găsit pentru \'' + searchQuery + '\'' : 'Această categorie nu are produse'"></p>
+                </div>
+
+                <div x-show="getProducts().length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                    <template x-for="prod in getProducts()" :key="prod.id">
+                        <button @click="selectProduct(prod)"
+                                class="flex flex-row items-center text-left bg-white border border-gray-100 rounded-2xl p-3 shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-[0.98] group overflow-hidden w-full relative">
+                            <template x-if="prod.image">
+                                <div class="w-12 h-12 rounded-xl shrink-0 overflow-hidden bg-gray-50 mr-3">
+                                    <img :src="'/storage/' + prod.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                </div>
+                            </template>
+                            <div class="flex-grow min-w-0 pr-12">
+                                <h3 class="font-black text-gray-900 text-xs md:text-sm leading-tight mb-1 truncate" x-text="prod.name"></h3>
+                                <p class="text-orange-600 font-black text-xs md:text-sm" x-text="parseFloat(prod.price).toFixed(2) + ' RON'"></p>
                             </div>
-                        </template>
-                        <div class="flex-grow min-w-0 pr-12">
-                            <h3 class="font-black text-gray-900 text-xs md:text-sm leading-tight mb-1 truncate" x-text="prod.name"></h3>
-                            <p class="text-orange-600 font-black text-xs md:text-sm" x-text="parseFloat(prod.price).toFixed(2) + ' RON'"></p>
-                        </div>
-                        <!-- Quick Add Plus Icon (All screens) -->
-                        <div class="absolute right-3">
-                            <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/10 group-hover:scale-105 active:scale-90 transition-all duration-200">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+                            <!-- Quick Add Plus Icon (All screens) -->
+                            <div class="absolute right-3">
+                                <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/10 group-hover:scale-105 active:scale-90 transition-all duration-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+                                </div>
                             </div>
-                        </div>
-                    </button>
-                </template>
+                        </button>
+                    </template>
+                </div>
             </div>
         </div>
 
