@@ -1036,16 +1036,24 @@
             </div>
 
             <!-- Footer -->
-            <div class="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center rounded-b-[2.5rem] print:hidden">
-                <button @click="showReportModal = false" class="py-3 px-6 text-gray-400 font-bold hover:text-gray-600 transition-colors text-[10px] uppercase tracking-widest">
+            <div class="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center gap-3 rounded-b-[2.5rem] print:hidden">
+                <button @click="showReportModal = false" class="py-3 px-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-[10px] uppercase tracking-widest">
                     Închide
                 </button>
-                <button @click="window.print()" class="bg-gray-900 text-white py-3 px-6 rounded-xl font-black shadow-lg shadow-gray-900/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-widest flex items-center gap-1.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    <span>Printează</span>
-                </button>
+                <div class="flex items-center gap-3">
+                    <a href="/waiter/pdf-daily-report" target="_blank" class="bg-gray-800 text-white py-3 px-5 rounded-xl font-black shadow-lg shadow-gray-800/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-widest flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>PDF</span>
+                    </a>
+                    <button @click="window.open('/waiter/print-daily-report', '_blank')" class="bg-orange-600 text-white py-3 px-5 rounded-xl font-black shadow-lg shadow-orange-600/20 hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-widest flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span>Printează</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

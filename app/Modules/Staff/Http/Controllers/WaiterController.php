@@ -378,6 +378,70 @@ class WaiterController extends Controller
         return view('waiter.print-bill', compact('order', 'settings'));
     }
 
+    private function compileDailyReportData($staffId)
+    {
+        $startOfDay = now()->startOfDay();
+        $endOfDay = now()->endOfDay();
+
+        // Total orders today (excluding cancelled)
+        $totalOrdersCount = Order::where('staff_id', $staffId)
+            ->whereNotIn('status', ['cancelled'])
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->count();
+
+        // Paid orders today
+        $paidOrdersCount = Order::where('staff_id', $staffId)
+            ->where('status', 'paid')
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->count();
+
+        // Total revenue today
+        $totalRevenue = Order::where('staff_id', $staffId)
+            ->where('status', 'paid')
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->sum('total');
+
+        // Cash revenue today
+        $cashRevenue = Order::where('staff_id', $staffId)
+            ->where('status', 'paid')
+            ->where('payment_method', 'cash')
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->sum('total');
+
+        // Card revenue today
+        $cardRevenue = Order::where('staff_id', $staffId)
+            ->where('status', 'paid')
+            ->where('payment_method', 'card')
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->sum('total');
+
+        // Products sold today
+        $productsSold = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.staff_id', $staffId)
+            ->where('orders.status', 'paid')
+            ->whereBetween('orders.created_at', [$startOfDay, $endOfDay])
+            ->select(
+                'order_items.name',
+                DB::raw('SUM(order_items.quantity) as total_qty'),
+                DB::raw('SUM(order_items.price * order_items.quantity) as total_value')
+            )
+            ->groupBy('order_items.name')
+            ->orderBy('total_qty', 'desc')
+            ->get();
+
+        return [
+            'staff_name' => session('staff_name'),
+            'date' => now()->format('d.m.Y'),
+            'total_orders_count' => $totalOrdersCount,
+            'paid_orders_count' => $paidOrdersCount,
+            'total_revenue' => (float)$totalRevenue,
+            'cash_revenue' => (float)$cashRevenue,
+            'card_revenue' => (float)$cardRevenue,
+            'products_sold' => $productsSold
+        ];
+    }
+
     public function getDailyReportJson()
     {
         try {
@@ -386,72 +450,53 @@ class WaiterController extends Controller
                 return response()->json(['success' => false, 'message' => 'Sesiune expirată sau neautorizată.'], 401);
             }
 
-            $startOfDay = now()->startOfDay();
-            $endOfDay = now()->endOfDay();
-
-            // Total orders today (excluding cancelled)
-            $totalOrdersCount = Order::where('staff_id', $staffId)
-                ->whereNotIn('status', ['cancelled'])
-                ->whereBetween('created_at', [$startOfDay, $endOfDay])
-                ->count();
-
-            // Paid orders today
-            $paidOrdersCount = Order::where('staff_id', $staffId)
-                ->where('status', 'paid')
-                ->whereBetween('created_at', [$startOfDay, $endOfDay])
-                ->count();
-
-            // Total revenue today
-            $totalRevenue = Order::where('staff_id', $staffId)
-                ->where('status', 'paid')
-                ->whereBetween('created_at', [$startOfDay, $endOfDay])
-                ->sum('total');
-
-            // Cash revenue today
-            $cashRevenue = Order::where('staff_id', $staffId)
-                ->where('status', 'paid')
-                ->where('payment_method', 'cash')
-                ->whereBetween('created_at', [$startOfDay, $endOfDay])
-                ->sum('total');
-
-            // Card revenue today
-            $cardRevenue = Order::where('staff_id', $staffId)
-                ->where('status', 'paid')
-                ->where('payment_method', 'card')
-                ->whereBetween('created_at', [$startOfDay, $endOfDay])
-                ->sum('total');
-
-            // Products sold today
-            $productsSold = DB::table('order_items')
-                ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->where('orders.staff_id', $staffId)
-                ->where('orders.status', 'paid')
-                ->whereBetween('orders.created_at', [$startOfDay, $endOfDay])
-                ->select(
-                    'order_items.name',
-                    DB::raw('SUM(order_items.quantity) as total_qty'),
-                    DB::raw('SUM(order_items.price * order_items.quantity) as total_value')
-                )
-                ->groupBy('order_items.name')
-                ->orderBy('total_qty', 'desc')
-                ->get();
+            $report = $this->compileDailyReportData($staffId);
 
             return response()->json([
                 'success' => true,
-                'report' => [
-                    'staff_name' => session('staff_name'),
-                    'date' => now()->format('d.m.Y'),
-                    'total_orders_count' => $totalOrdersCount,
-                    'paid_orders_count' => $paidOrdersCount,
-                    'total_revenue' => (float)$totalRevenue,
-                    'cash_revenue' => (float)$cashRevenue,
-                    'card_revenue' => (float)$cardRevenue,
-                    'products_sold' => $productsSold
-                ]
+                'report' => $report
             ]);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function printDailyReport()
+    {
+        try {
+            $staffId = session('staff_id');
+            if (!$staffId) {
+                return redirect()->route('staff.login')->with('error', 'Sesiune expirată.');
+            }
+
+            $report = $this->compileDailyReportData($staffId);
+            $settings = \App\Modules\Settings\Models\CompanySetting::first() ?? new \App\Modules\Settings\Models\CompanySetting();
+
+            return view('waiter.print-daily-report', compact('report', 'settings'));
+        } catch (\Exception $e) {
+            return back()->with('error', 'Eroare la generarea printului: ' . $e->getMessage());
+        }
+    }
+
+    public function pdfDailyReport()
+    {
+        try {
+            $staffId = session('staff_id');
+            if (!$staffId) {
+                return redirect()->route('staff.login')->with('error', 'Sesiune expirată.');
+            }
+
+            $report = $this->compileDailyReportData($staffId);
+            $settings = \App\Modules\Settings\Models\CompanySetting::first() ?? new \App\Modules\Settings\Models\CompanySetting();
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('waiter.print-daily-report', compact('report', 'settings'));
+            
+            $filename = 'raport-zilnic-' . Str::slug(session('staff_name')) . '-' . now()->format('d-m-Y') . '.pdf';
+            
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Eroare la generarea PDF-ului: ' . $e->getMessage());
         }
     }
 }
