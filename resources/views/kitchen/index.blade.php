@@ -113,19 +113,22 @@
             connectionError: false,
             pollInterval: null,
             soundRepeatInterval: null,
-            audioAlert: null,
+            audioElement: null,
 
             startApp() {
                 this.soundEnabled = true; // User gesture allows audio later
                 this.showStartOverlay = false;
                 
-                // Preload audio once to guarantee fast playing without network delays
-                try {
-                    this.audioAlert = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-                    this.audioAlert.preload = "auto";
-                    this.audioAlert.load();
-                } catch (e) {
-                    console.error("Failed to preload audio:", e);
+                // Bless/Unlock DOM audio element synchronously in user gesture for iOS/iPadOS support
+                this.audioElement = document.getElementById('alert-sound');
+                if (this.audioElement) {
+                    try {
+                        this.audioElement.muted = false;
+                        this.audioElement.load();
+                        this.audioElement.play().catch(e => console.warn('Initial DOM audio unlock failed (expected/fine on some platforms):', e));
+                    } catch (e) {
+                        console.error('Error unlocking DOM audio:', e);
+                    }
                 }
 
                 this.fetchOrders();
@@ -234,28 +237,36 @@
             toggleSound() {
                 this.soundEnabled = !this.soundEnabled;
                 if (this.soundEnabled) {
-                    if (!this.audioAlert) {
+                    if (!this.audioElement) {
+                        this.audioElement = document.getElementById('alert-sound');
+                    }
+                    if (this.audioElement) {
                         try {
-                            this.audioAlert = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-                            this.audioAlert.preload = "auto";
-                            this.audioAlert.load();
+                            this.audioElement.muted = false;
+                            this.audioElement.play().catch(e => console.warn('DOM Audio unlock in toggleSound failed:', e));
                         } catch (e) {
-                            console.error("Failed to preload audio in toggleSound:", e);
+                            console.error('Error unlocking audio in toggleSound:', e);
                         }
                     }
-                    this.playSound();
                 }
             },
 
             playSound() {
-                if (this.audioAlert) {
-                    this.audioAlert.currentTime = 0;
-                    this.audioAlert.play().catch(e => console.warn('Audio play blocked:', e));
-                } else {
-                    const audio = document.getElementById('alert-sound');
-                    if (audio) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.warn('Fallback audio blocked:', e));
+                if (!this.audioElement) {
+                    this.audioElement = document.getElementById('alert-sound');
+                }
+                if (this.audioElement) {
+                    try {
+                        this.audioElement.pause();
+                        this.audioElement.currentTime = 0;
+                        const playPromise = this.audioElement.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(e => {
+                                console.warn('DOM Audio play blocked on iOS/iPadOS:', e);
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Error playing DOM audio on iOS:', err);
                     }
                 }
             },
