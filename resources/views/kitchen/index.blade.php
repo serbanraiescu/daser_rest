@@ -112,6 +112,7 @@
             lastUpdated: null,
             connectionError: false,
             pollInterval: null,
+            soundRepeatInterval: null,
 
             startApp() {
                 this.soundEnabled = true; // User gesture allows audio later
@@ -121,6 +122,15 @@
                 // Start Polling
                 if (this.pollInterval) clearInterval(this.pollInterval);
                 this.pollInterval = setInterval(() => this.fetchOrders(), 10000);
+
+                // Start Sound Loop Interval - repeats every 5 seconds if there are pending orders
+                if (this.soundRepeatInterval) clearInterval(this.soundRepeatInterval);
+                this.soundRepeatInterval = setInterval(() => {
+                    if (this.soundEnabled && this.orders.some(o => o.status === 'pending')) {
+                        console.log('Repeating alert sound for pending orders...');
+                        this.playSound();
+                    }
+                }, 5000);
             },
 
             async fetchOrders() {
@@ -136,13 +146,29 @@
                     
                     const newOrders = await response.json();
                     
-                    // Check for NEW orders (compare ID lists)
+                    // Check for NEW orders or ADDED items to play sound immediately
                     if (this.orders.length > 0 && this.soundEnabled) {
                         const oldIds = this.orders.map(o => o.id);
+                        
+                        // 1. Completely new order in pending status
                         const hasNewOrder = newOrders.some(o => !oldIds.includes(o.id) && o.status === 'pending');
                         
-                        if (hasNewOrder) {
-                            console.log('New order detected! Playing sound...');
+                        // 2. Existing order got new items
+                        let hasNewItems = false;
+                        for (const newOrder of newOrders) {
+                            const oldOrder = this.orders.find(o => o.id === newOrder.id);
+                            if (oldOrder) {
+                                const oldItemIds = oldOrder.items.map(item => item.id);
+                                const hasAddedItem = newOrder.items.some(item => !oldItemIds.includes(item.id));
+                                if (hasAddedItem) {
+                                    hasNewItems = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (hasNewOrder || hasNewItems) {
+                            console.log('New order or added items detected! Playing sound immediately...');
                             this.playSound();
                         }
                     } else if (newOrders.length > 0 && this.orders.length === 0 && this.soundEnabled) {
@@ -205,6 +231,13 @@
                     audio.currentTime = 0;
                     audio.play().catch(e => console.warn('Audio blocked:', e));
                 }
+            },
+            
+            isAddedLater(item, order) {
+                if (!item.created_at || !order.created_at) return false;
+                const itemTime = new Date(item.created_at).getTime();
+                const orderTime = new Date(order.created_at).getTime();
+                return (itemTime - orderTime) > 30000; // 30 seconds
             },
             
             formatTime(dateString) {
