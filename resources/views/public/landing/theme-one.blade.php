@@ -13,7 +13,7 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left relative z-10 w-full">
             <div class="inline-block px-4 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 text-sm font-bold tracking-widest uppercase mb-6 animate-fade-in">
-                {{ $settings->site_name ?? 'RestaurantOS' }}
+                {{ $settings->site_name ?? 'Daser Restaurant OS' }}
             </div>
             <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight tracking-tight">
                 @php

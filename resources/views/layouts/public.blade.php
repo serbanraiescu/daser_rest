@@ -101,7 +101,7 @@
                  <p class="text-gray-500">&copy; {{ date('Y') }} {{ $settings->site_name ?? 'Daser Restaurant' }}. Toate drepturile rezervate.</p>
                  <div class="flex items-center gap-2 text-gray-700">
                     <span>Powered by</span>
-                    <span class="font-bold">RestaurantOS</span>
+                    <span class="font-bold">Daser Restaurant OS</span>
                  </div>
              </div>
         </div>
