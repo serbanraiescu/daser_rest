@@ -45,11 +45,13 @@
                     <a href="{{ route('gallery') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Galerie') }}</a>
                     <a href="{{ route('about') }}" class="text-gray-700 hover:text-primary font-medium">{{ __('Despre Noi') }}</a>
                 </div>
+                @if(!($settings->hide_ordering_button ?? false))
                 <div>
                      <a href="{{ route('menu.index') }}" class="bg-primary hover:opacity-90 text-white px-6 py-2 rounded-full font-semibold transition-all shadow-lg shadow-primary/20">
-                        Comandă Online
+                        {{ ($settings->enable_ordering ?? true) ? 'Comandă Online' : 'Vezi Meniul' }}
                     </a>
                 </div>
+                @endif
             </div>
         </div>
     </nav>

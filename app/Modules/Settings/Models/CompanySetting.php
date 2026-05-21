@@ -21,6 +21,7 @@ class CompanySetting extends Model
         'opening_hours', // JSON: [{day: 'Monday', hours: '09:00 - 22:00'}]
         'enable_ordering',
         'enable_delivery',
+        'hide_ordering_button',
         'fiscal_code',
         'trade_register',
         'fiscal_address',

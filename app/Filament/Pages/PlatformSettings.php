@@ -73,7 +73,10 @@ class PlatformSettings extends Page implements HasForms
                                     ->schema([
                                         Toggle::make('enable_ordering')->label('Comenzi Online')->default(true),
                                         Toggle::make('enable_delivery')->label('Livrare la Domiciliu')->default(true),
-                                    ])->columns(2),
+                                        Toggle::make('hide_ordering_button')
+                                            ->label('Ascunde complet butonul de comenzi pe site')
+                                            ->default(false),
+                                    ])->columns(3),
                                 Section::make('Date Fiscale')
                                     ->schema([
                                         Grid::make(3)->schema([
