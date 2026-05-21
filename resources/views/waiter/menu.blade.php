@@ -123,39 +123,25 @@
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto px-4 pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="max-w-7xl mx-auto px-4 pt-4 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Products Grid -->
-        <div class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="space-y-6 lg:col-span-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
                 <template x-for="prod in getProducts()" :key="prod.id">
                     <button @click="selectProduct(prod)"
-                            class="flex flex-row md:flex-col items-center md:items-start text-left bg-white border border-gray-100 rounded-2xl md:rounded-3xl p-2.5 md:p-3 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group overflow-hidden w-full relative">
-                        
+                            class="flex flex-row items-center text-left bg-white border border-gray-100 rounded-2xl p-3 shadow-sm hover:shadow-md hover:border-orange-200 transition-all active:scale-[0.98] group overflow-hidden w-full relative">
                         <template x-if="prod.image">
-                            <div class="w-12 h-12 md:w-full md:aspect-square rounded-xl md:rounded-2xl mb-0 md:mb-3 mr-3 md:mr-0 shrink-0 overflow-hidden bg-gray-50">
-                                <img :src="'/storage/' + prod.image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div class="w-12 h-12 rounded-xl shrink-0 overflow-hidden bg-gray-50 mr-3">
+                                <img :src="'/storage/' + prod.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             </div>
                         </template>
-                        <template x-if="!prod.image">
-                            <div class="hidden md:flex w-full aspect-square rounded-2xl mb-3 bg-gray-50 items-center justify-center shrink-0">
-                                <svg class="w-8 h-8 text-gray-200" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"/></svg>
-                            </div>
-                        </template>
-
-                        <div class="flex-grow min-w-0 pr-10 md:pr-0">
-                            <h3 class="font-bold text-gray-900 text-xs md:text-sm leading-tight mb-1" x-text="prod.name"></h3>
-                            <p class="text-orange-600 font-black text-xs md:text-sm" x-text="parseFloat(prod.price).toFixed(2) + ' {{ $settings->currency ?? 'RON' }}'"></p>
+                        <div class="flex-grow min-w-0 pr-12">
+                            <h3 class="font-black text-gray-900 text-xs md:text-sm leading-tight mb-1 truncate" x-text="prod.name"></h3>
+                            <p class="text-orange-600 font-black text-xs md:text-sm" x-text="parseFloat(prod.price).toFixed(2) + ' RON'"></p>
                         </div>
-                        
-                        <!-- Quick Add Plus Icon (Mobile only) -->
-                        <div class="absolute right-3.5 md:hidden">
-                            <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md active:scale-90 transition-transform">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
-                            </div>
-                        </div>
-                        
-                        <div class="hidden md:block absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div class="bg-orange-600 text-white p-1 rounded-lg">
+                        <!-- Quick Add Plus Icon (All screens) -->
+                        <div class="absolute right-3">
+                            <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/10 group-hover:scale-105 active:scale-90 transition-all duration-200">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
                             </div>
                         </div>
@@ -164,8 +150,8 @@
             </div>
         </div>
 
-        <!-- Order Summary (Sidebar on Desktop, Bottom on Mobile) - Hidden on Mobile -->
-        <div class="hidden md:block bg-gray-50 rounded-3xl p-6 h-fit sticky top-24 border border-gray-100">
+        <!-- Order Summary (Sidebar on Desktop, Bottom on Mobile) - Hidden on Mobile & Tablet -->
+        <div class="hidden lg:block lg:col-span-1 bg-gray-50 rounded-[2rem] p-6 h-fit sticky top-24 border border-gray-100">
             <h2 class="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
                 Coș Comandă
                 <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-lg text-xs" x-text="cart.length"></span>
@@ -258,7 +244,7 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 translate-y-10"
-         class="md:hidden p-4 bg-white border-t border-gray-150 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 right-0 z-40 shrink-0">
+         class="lg:hidden p-4 bg-white border-t border-gray-150 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 right-0 z-40 shrink-0">
         <button @click="showMobileCart = true"
                 class="w-full bg-orange-600 text-white p-4 rounded-2xl flex items-center justify-between font-black shadow-lg shadow-orange-600/20 active:scale-95 transition-all text-xs uppercase tracking-widest">
             <div class="flex items-center gap-2">
@@ -271,7 +257,7 @@
 
     <!-- Mobile Bottom Sheet Drawer for Cart -->
     <div x-show="showMobileCart" 
-         class="fixed inset-0 z-50 md:hidden flex flex-col justify-end"
+         class="fixed inset-0 z-50 lg:hidden flex flex-col justify-end"
          x-cloak>
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showMobileCart = false"
