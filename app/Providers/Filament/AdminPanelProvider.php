@@ -27,6 +27,12 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->brandName('Daser Restaurant OS')
+            ->favicon(fn () => \App\Modules\Settings\Models\CompanySetting::first()?->company_favicon ? asset('storage/' . \App\Modules\Settings\Models\CompanySetting::first()->company_favicon) : asset('favicon.png'))
+            ->renderHook(
+                'panels::sidebar.footer',
+                fn (): string => view('filament.sidebar-footer')->render(),
+            )
             ->login()
             ->colors([
                 'primary' => Color::Amber,

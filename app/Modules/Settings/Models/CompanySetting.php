@@ -11,6 +11,7 @@ class CompanySetting extends Model
     protected $fillable = [
         'site_name',
         'company_logo',
+        'company_favicon',
         'hero_title',
         'hero_description',
         'hero_background_image',

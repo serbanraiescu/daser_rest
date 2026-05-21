@@ -16,6 +16,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         [x-cloak] { display: none !important; }
     </style>
+    <link rel="icon" type="image/png" href="{{ ($settings->company_favicon ?? null) ? asset('storage/' . $settings->company_favicon) : asset('favicon.png') }}">
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
     @yield('content')

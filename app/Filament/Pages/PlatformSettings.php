@@ -125,6 +125,11 @@ class PlatformSettings extends Page implements HasForms
                                     ->image()
                                     ->directory('settings')
                                     ->disk('public'),
+                                FileUpload::make('company_favicon')
+                                    ->label('Favicon (Pictogramă Browser)')
+                                    ->image()
+                                    ->directory('settings')
+                                    ->disk('public'),
                             ]),
 
                         // TAB: PAGINA ACASA & CONTACT

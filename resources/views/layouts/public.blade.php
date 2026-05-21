@@ -22,6 +22,7 @@
         .hover\:text-primary:hover { color: var(--primary-color) !important; }
         .hover\:bg-primary:hover { background-color: var(--primary-color) !important; }
     </style>
+    <link rel="icon" type="image/png" href="{{ ($settings->company_favicon ?? null) ? asset('storage/' . $settings->company_favicon) : asset('favicon.png') }}">
 </head>
 <body class="antialiased flex flex-col min-h-screen">
     <x-cookie-consent :settings="$settings" />

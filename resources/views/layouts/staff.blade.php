@@ -15,6 +15,7 @@
         /* Dark mode overrides if needed */
         .bg-gray-900 { background-color: #111827; }
     </style>
+    <link rel="icon" type="image/png" href="{{ ($settings->company_favicon ?? null) ? asset('storage/' . $settings->company_favicon) : asset('favicon.png') }}">
 </head>
 <body class="bg-gray-900 text-white antialiased flex flex-col min-h-screen">
     
