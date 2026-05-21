@@ -99,10 +99,12 @@
             </div>
              <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
                  <p class="text-gray-500">&copy; {{ date('Y') }} {{ $settings->site_name ?? 'Daser Restaurant' }}. Toate drepturile rezervate.</p>
-                 <div class="flex items-center gap-2 text-gray-700">
-                    <span>Powered by</span>
-                    <span class="font-bold">Daser Restaurant OS</span>
-                 </div>
+                  <div class="flex items-center gap-3 text-gray-600">
+                     <span>Powered by</span>
+                     <span class="font-bold text-gray-400">Daser Restaurant OS</span>
+                     <span class="text-gray-800">|</span>
+                     <img src="{{ asset('images/daser_tech_logo_white.png') }}" alt="Daser Technologies Logo" class="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity">
+                  </div>
              </div>
         </div>
     </footer>

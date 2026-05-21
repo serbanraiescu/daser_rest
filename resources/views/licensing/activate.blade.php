@@ -51,8 +51,12 @@
             </div>
         </form>
         
-        <div class="mt-6 text-center text-xs text-gray-400">
-            &copy; {{ date('Y') }} Daser Restaurant OS. All rights reserved.
+        <div class="mt-6 flex flex-col items-center gap-3 text-center text-xs text-gray-400">
+            <div>&copy; {{ date('Y') }} Daser Restaurant OS. All rights reserved.</div>
+            <div class="flex items-center gap-2 text-gray-500">
+                <span>Powered by</span>
+                <img src="{{ asset('images/daser_tech_logo_black.png') }}" alt="Daser Technologies Logo" class="h-5 w-auto">
+            </div>
         </div>
     </div>
 
