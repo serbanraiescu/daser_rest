@@ -16,6 +16,7 @@ class Order extends Model
         'payment_method', // cash, card, online
         'table_number',
         'notes',
+        'staff_id',
     ];
 
     protected $casts = [
@@ -30,5 +31,10 @@ class Order extends Model
     public function fiscalDetails()
     {
         return $this->hasOne(OrderFiscalDetail::class);
+    }
+
+    public function waiter()
+    {
+        return $this->belongsTo(\App\Modules\Staff\Models\StaffMember::class, 'staff_id');
     }
 }

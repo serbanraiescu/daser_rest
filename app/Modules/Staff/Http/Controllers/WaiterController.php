@@ -118,6 +118,9 @@ class WaiterController extends Controller
             if ($order) {
                 // Update existing order
                 $order->total += $total;
+                if (!$order->staff_id) {
+                    $order->staff_id = session('staff_id');
+                }
                 $order->save();
                 
                 // Add note about update
@@ -134,6 +137,7 @@ class WaiterController extends Controller
                     'total' => $total,
                     'payment_method' => $validated['payment_method'],
                     'table_number' => $validated['table_number'],
+                    'staff_id' => session('staff_id'),
                     'notes' => 'Comandă Ospătar (' . (session('staff_name') ?? 'Staff') . ')',
                 ]);
             }
@@ -291,6 +295,7 @@ class WaiterController extends Controller
                 'total' => $splitTotal,
                 'payment_method' => $request->payment_method,
                 'table_number' => $originalOrder->table_number,
+                'staff_id' => session('staff_id') ?? $originalOrder->staff_id,
                 'notes' => 'Achitat Parțial din ' . $originalOrder->order_number,
             ]);
 
