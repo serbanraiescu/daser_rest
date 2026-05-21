@@ -279,9 +279,9 @@
                                 </td>
                                 <td class="px-6 py-3 text-xs">{{ $order->created_at->format('d.m.Y H:i') }}</td>
                                 <td class="px-6 py-3 text-right font-bold text-gray-900 dark:text-white">{{ number_format($order->total, 2) }} {{ $currency }}</td>
-                                <td class="px-6 py-3">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">
-                                        {{ $order->waiter ? $order->waiter->name : 'Comandă Online' }}
+                                <td class="px-6 py-3 font-medium">
+                                    <span class="text-sm text-gray-700 dark:text-gray-300">
+                                        {{ \App\Filament\Pages\OrderReports::resolveWaiterName($order) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-3 text-center">

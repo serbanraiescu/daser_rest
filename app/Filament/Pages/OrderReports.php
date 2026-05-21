@@ -51,6 +51,29 @@ class OrderReports extends Page
         $this->selectedOrderNumber = null;
     }
 
+    public static function resolveWaiterName($order): string
+    {
+        if ($order->waiter) {
+            return $order->waiter->name;
+        }
+
+        // Try to extract from notes
+        if ($order->notes && preg_match('/Ospătar \(([^)]+)\)/i', $order->notes, $matches)) {
+            return $matches[1];
+        }
+
+        if ($order->notes && preg_match('/Comandă Ospătar \(([^)]+)\)/i', $order->notes, $matches)) {
+            return $matches[1];
+        }
+
+        // If table_number is present, it's a customer ordering at a table (QR code)
+        if (!empty($order->table_number)) {
+            return 'Client (Masa ' . $order->table_number . ')';
+        }
+
+        return 'Comandă Online';
+    }
+
     public function getReportData(): array
     {
         $dateRange = $this->getDateRange();
@@ -81,30 +104,34 @@ class OrderReports extends Page
             ->get()
             ->toArray();
 
-        // 3. Performanță Ospătari
-        $waiterSales = DB::table('orders')
-            ->leftJoin('staff_members', 'orders.staff_id', '=', 'staff_members.id')
-            ->whereIn('orders.status', ['paid', 'delivered'])
-            ->whereBetween('orders.created_at', [$start, $end])
-            ->select(
-                'staff_members.name as waiter_name',
-                DB::raw('COUNT(orders.id) as orders_count'),
-                DB::raw('SUM(orders.total) as total_sales')
-            )
-            ->groupBy('orders.staff_id', 'staff_members.name')
-            ->orderBy('total_sales', 'desc')
-            ->get()
-            ->map(function ($item) {
-                $item->waiter_name = $item->waiter_name ?? 'Comenzi Online / Directe';
-                return $item;
-            })
-            ->toArray();
-
         // 4. Istoric Comenzi Detaliat
         $history = Order::with('waiter')
             ->whereBetween('created_at', [$start, $end])
             ->orderBy('created_at', 'desc')
             ->get();
+
+        // 3. Performanță Ospătari (Calculată în PHP pentru a folosi helperul inteligent)
+        $waiterSalesMap = [];
+        foreach ($history as $order) {
+            if (!in_array($order->status, ['paid', 'delivered'])) {
+                continue;
+            }
+            $waiterName = self::resolveWaiterName($order);
+            if (!isset($waiterSalesMap[$waiterName])) {
+                $waiterSalesMap[$waiterName] = (object)[
+                    'waiter_name' => $waiterName,
+                    'orders_count' => 0,
+                    'total_sales' => 0.0,
+                ];
+            }
+            $waiterSalesMap[$waiterName]->orders_count++;
+            $waiterSalesMap[$waiterName]->total_sales += floatval($order->total);
+        }
+
+        // Sort desc by sales value
+        usort($waiterSalesMap, function ($a, $b) {
+            return $b->total_sales <=> $a->total_sales;
+        });
 
         return [
             'kpis' => [
@@ -115,7 +142,7 @@ class OrderReports extends Page
                 'average_value' => floatval($averageValue),
             ],
             'products' => $productSales,
-            'waiters' => $waiterSales,
+            'waiters' => $waiterSalesMap,
             'history' => $history,
             'range_title' => $this->getRangeTitle($start, $end),
         ];
