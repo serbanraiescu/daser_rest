@@ -42,12 +42,12 @@ class OrderResource extends Resource
                     ->dehydrated(false),
                 Select::make('status')
                     ->options([
-                        'pending' => 'Pending',
-                        'preparing' => 'Preparing',
-                        'ready' => 'Ready',
-                        'delivered' => 'Delivered',
-                        'paid' => 'Paid',
-                        'cancelled' => 'Cancelled',
+                        'pending' => 'În Așteptare',
+                        'preparing' => 'În Pregătire',
+                        'ready' => 'Pregătită (Gata)',
+                        'delivered' => 'Terminată',
+                        'paid' => 'Achitată',
+                        'cancelled' => 'Anulată',
                     ])
                     ->required(),
                 TextInput::make('table_number')

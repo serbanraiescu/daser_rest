@@ -6,12 +6,28 @@
         $waiters = $data['waiters'];
         $history = $data['history'];
         $rangeTitle = $data['range_title'];
-        $currency = \App\Modules\Settings\Models\CompanySetting::first()->currency ?? 'RON';
+        $company = \App\Modules\Settings\Models\CompanySetting::first();
+        $currency = $company->currency ?? 'RON';
+        $siteName = $company->site_name ?? 'WPALounge';
     @endphp
 
     <div class="space-y-6">
+        <!-- Print-only Header -->
+        <div class="hidden print:block mb-6 border-b pb-4">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h1 class="text-3xl font-black uppercase tracking-tight text-gray-900">{{ $siteName }}</h1>
+                    <p class="text-sm text-gray-500 font-bold uppercase tracking-wider mt-1">Raport Performanță Vânzări</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-semibold text-gray-700">{{ $rangeTitle }}</p>
+                    <p class="text-xs text-gray-400 mt-1">Generat la: {{ now()->format('d.m.Y H:i') }}</p>
+                </div>
+            </div>
+        </div>
+
         <!-- 1. Filters & Navigation Bar -->
-        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 gap-6">
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 gap-6 print:hidden">
             <div class="space-y-1">
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -82,11 +98,22 @@
                         </div>
                     @endif
                 </div>
+
+                <!-- Print Button -->
+                <button 
+                    onclick="window.print()" 
+                    class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm focus:ring-2 focus:ring-primary-500 print:hidden cursor-pointer"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Printează Raport
+                </button>
             </div>
         </div>
 
         <!-- 2. KPI Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print-grid-kpi">
             <!-- Total Revenue -->
             <div class="relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group duration-300">
                 <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
@@ -164,7 +191,7 @@
         </div>
 
         <!-- 3. Tables Row: Top Products & Waiter Reports -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-grid-two">
             <!-- Top Products Table -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -262,7 +289,7 @@
                             <th class="px-6 py-3 text-right">Valoare</th>
                             <th class="px-6 py-3">Ospătar</th>
                             <th class="px-6 py-3 text-center">Stare</th>
-                            <th class="px-6 py-3 text-center">Acțiuni</th>
+                            <th class="px-6 py-3 text-center print:hidden">Acțiuni</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -288,18 +315,18 @@
                                     @php
                                         $statusConfig = [
                                             'paid' => ['label' => 'Achitată', 'class' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'],
-                                            'delivered' => ['label' => 'Livrată', 'class' => 'bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400'],
+                                            'delivered' => ['label' => 'Terminată', 'class' => 'bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400'],
                                             'pending' => ['label' => 'În Așteptare', 'class' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'],
                                             'preparing' => ['label' => 'În Pregătire', 'class' => 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'],
                                             'ready' => ['label' => 'Pregătită', 'class' => 'bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400'],
                                             'cancelled' => ['label' => 'Anulată', 'class' => 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'],
                                         ][$order->status] ?? ['label' => $order->status, 'class' => 'bg-gray-100 text-gray-700'];
                                     @endphp
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full {{ $statusConfig['class'] }}">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full {{ $statusConfig['class'] }} print:border print:border-gray-300 print:text-black print:bg-white">
                                         {{ $statusConfig['label'] }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-3 text-center">
+                                <td class="px-6 py-3 text-center print:hidden">
                                     <button 
                                         wire:click="viewOrderItems({{ $order->id }})" 
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50 hover:bg-primary-50 dark:hover:bg-primary-950/30 rounded-xl transition-all"
@@ -399,4 +426,90 @@
             </div>
         </div>
     @endif
+<style>
+@media print {
+    /* Hide all layout elements of Filament admin */
+    .fi-sidebar,
+    .fi-topbar,
+    .fi-topbar-placeholder,
+    .fi-breadcrumbs,
+    .fi-header,
+    .fi-footer,
+    .fi-theme-switcher,
+    .print\:hidden {
+        display: none !important;
+    }
+    
+    body, .fi-body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12px !important;
+    }
+    
+    main, 
+    .fi-main-ctn,
+    .fi-main {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+    }
+
+    .bg-white, .dark\:bg-gray-800 {
+        background-color: white !important;
+        color: black !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0.75rem !important;
+        box-shadow: none !important;
+    }
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+    }
+    
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+    
+    thead {
+        display: table-header-group !important;
+    }
+    
+    .print-grid-kpi {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 1rem !important;
+    }
+    
+    .print-grid-two {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 1rem !important;
+    }
+
+    .text-emerald-600, .dark\:text-emerald-400 {
+        color: #059669 !important;
+    }
+    .text-blue-600, .dark\:text-blue-400 {
+        color: #2563eb !important;
+    }
+    .text-indigo-600, .dark\:text-indigo-400 {
+        color: #4f46e5 !important;
+    }
+    .text-amber-600, .dark\:text-amber-400 {
+        color: #d97706 !important;
+    }
+    
+    @page {
+        size: A4 portrait;
+        margin: 1.5cm;
+    }
+}
+</style>
 </x-filament-panels::page>

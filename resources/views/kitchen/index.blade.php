@@ -87,7 +87,7 @@
             <div class="flex-grow overflow-y-auto p-4 space-y-4 chrome-scrollbar">
                 <template x-for="order in orders.filter(o => o.status === 'ready')" :key="order.id">
                     <div class="bg-white rounded-xl shadow-lg overflow-hidden border-l-4 border-green-500 opacity-90 hover:opacity-100 transition-opacity">
-                        @include('kitchen.partials.card', ['nextStatus' => 'delivered', 'btnColor' => 'bg-gray-800 hover:bg-gray-900', 'btnText' => 'Delivered'])
+                        @include('kitchen.partials.card', ['nextStatus' => 'delivered', 'btnColor' => 'bg-gray-800 hover:bg-gray-900', 'btnText' => 'Terminat'])
                     </div>
                 </template>
                  <div x-show="orders.filter(o => o.status === 'ready').length === 0" class="text-gray-500 text-center py-10 italic">
