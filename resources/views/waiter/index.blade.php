@@ -329,8 +329,9 @@
     },
 
     // Notifications State
-    toasts: [],
-    notifiedItemIds: new Set(),
+    activeNotifications: [], // Array of table names, e.g. ['C1']
+    currentReadyItems: [],   // Stores raw ready items
+    acknowledgedItemIds: new Set(),
 
     playNotificationSound() {
         try {
@@ -369,27 +370,19 @@
             const response = await fetch('/waiter/api/notifications');
             const data = await response.json();
             if (data.success && data.items) {
+                this.currentReadyItems = data.items;
+                
+                // Filter out items already acknowledged
+                const newItems = data.items.filter(item => !this.acknowledgedItemIds.has(item.id));
+                
+                // Get unique table names for these new ready items
+                const tablesWithNewReady = [...new Set(newItems.map(item => item.table_name))];
+                
                 let hasNewReady = false;
                 
-                data.items.forEach(item => {
-                    if (!this.notifiedItemIds.has(item.id)) {
-                        this.notifiedItemIds.add(item.id);
-                        
-                        const toast = {
-                            id: item.id,
-                            table_name: item.table_name,
-                            product_name: item.product_name,
-                            quantity: item.quantity,
-                            destination: item.destination,
-                            notes: item.notes,
-                            timestamp: Date.now()
-                        };
-                        this.toasts.push(toast);
-                        
-                        setTimeout(() => {
-                            this.dismissToast(toast.id);
-                        }, 10000);
-                        
+                tablesWithNewReady.forEach(tableName => {
+                    if (!this.activeNotifications.includes(tableName)) {
+                        this.activeNotifications.push(tableName);
                         hasNewReady = true;
                     }
                 });
@@ -398,20 +391,31 @@
                     this.playNotificationSound();
                 }
 
+                // Auto-cleanup acknowledgedItemIds: remove IDs that are no longer returned as ready by the API
                 const currentReadyIds = new Set(data.items.map(i => i.id));
-                this.notifiedItemIds.forEach(id => {
+                this.acknowledgedItemIds.forEach(id => {
                     if (!currentReadyIds.has(id)) {
-                        this.notifiedItemIds.delete(id);
+                        this.acknowledgedItemIds.delete(id);
                     }
                 });
+                
+                // Also, if a table was in activeNotifications but now has ZERO ready items at all (e.g. served),
+                // we can automatically remove it from activeNotifications
+                const currentReadyTables = new Set(data.items.map(i => i.table_name));
+                this.activeNotifications = this.activeNotifications.filter(tableName => currentReadyTables.has(tableName));
             }
         } catch (e) {
             console.error('Eroare verificare notificări:', e);
         }
     },
 
-    dismissToast(id) {
-        this.toasts = this.toasts.filter(t => t.id !== id);
+    dismissTableNotification(tableName) {
+        this.currentReadyItems.forEach(item => {
+            if (item.table_name === tableName) {
+                this.acknowledgedItemIds.add(item.id);
+            }
+        });
+        this.activeNotifications = this.activeNotifications.filter(t => t !== tableName);
     },
 
     init() {
@@ -1204,56 +1208,31 @@
             window.addEventListener('resize', autoScale);
         });
     </script>
-    <!-- Beautiful Toast Notifications Container -->
-    <div class="fixed top-4 right-4 z-[9999] w-full max-w-sm flex flex-col gap-3 pointer-events-none">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="pointer-events-auto w-full bg-white border border-gray-100 rounded-3xl p-5 shadow-2xl flex items-start gap-4 transition-all transform translate-y-0 duration-300 relative overflow-hidden group"
+    <!-- Floating Top Notification Bars Stack -->
+    <div class="fixed top-0 left-0 right-0 z-[9999] pointer-events-none flex flex-col items-center p-3 gap-2">
+        <template x-for="tableName in activeNotifications" :key="tableName">
+            <div class="pointer-events-auto w-full max-w-xl bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl py-3 px-6 shadow-xl flex items-center justify-between gap-4 border border-orange-500/20 transition-all transform duration-300"
                  x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-x-10 scale-95"
-                 x-transition:enter-end="opacity-100 translate-x-0 scale-100"
+                 x-transition:enter-start="opacity-0 -translate-y-4 scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
                  x-transition:leave="transition ease-in duration-200"
                  x-transition:leave-start="opacity-100 scale-100"
-                 x-transition:leave-end="opacity-0 translate-x-10 scale-95">
+                 x-transition:leave-end="opacity-0 -translate-y-4 scale-95">
                  
-                 <!-- Decorative Left Edge Color depending on destination -->
-                 <div class="absolute left-0 top-0 bottom-0 w-2.5"
-                      :class="toast.destination === 'bar' ? 'bg-indigo-500' : 'bg-green-500'"></div>
-                 
-                 <!-- Destination Icon/Badge -->
-                 <div class="w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center text-white"
-                      :class="toast.destination === 'bar' ? 'bg-indigo-500' : 'bg-green-500'">
-                     <!-- Bar Icon (Glass) or Kitchen Icon (Chef hat / food) -->
-                     <template x-if="toast.destination === 'bar'">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                         </svg>
-                     </template>
-                     <template x-if="toast.destination !== 'bar'">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                         </svg>
-                     </template>
-                 </div>
-                 
-                 <!-- Content -->
-                 <div class="flex-grow min-w-0 pr-4">
-                     <div class="flex items-center gap-2 mb-1">
-                         <span class="bg-gray-50 text-gray-800 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg"
-                               x-text="toast.destination === 'bar' ? 'BAR' : 'BUCĂTĂRIE'"></span>
-                         <span class="text-[9px] font-bold text-gray-400" x-text="'Masa ' + toast.table_name"></span>
-                     </div>
-                     <h4 class="text-sm font-black text-gray-900 leading-snug truncate" x-text="toast.product_name"></h4>
-                     <p class="text-xs font-bold text-orange-600 mt-0.5">
-                         Pregătit! Cantitate: <span x-text="toast.quantity"></span>
+                 <!-- Message -->
+                 <div class="flex items-center gap-3 min-w-0">
+                     <span class="flex h-2.5 w-2.5 shrink-0 relative">
+                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                         <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                     </span>
+                     <p class="text-xs md:text-sm font-black uppercase tracking-wider truncate">
+                         Comandă pregătită la <span class="bg-white/20 px-2 py-0.5 rounded-lg text-white font-extrabold" x-text="'Masa ' + tableName"></span>!
                      </p>
-                     <template x-if="toast.notes">
-                         <p class="text-[10px] italic text-gray-400 mt-1 truncate" x-text="'Obs: ' + toast.notes"></p>
-                     </template>
                  </div>
                  
                  <!-- Close Button -->
-                 <button @click="dismissToast(toast.id)" class="absolute right-4 top-4 text-gray-300 hover:text-gray-500 transition-colors">
-                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                 <button @click="dismissTableNotification(tableName)" class="p-1 hover:bg-white/10 rounded-lg transition-colors shrink-0 text-white/80 hover:text-white">
+                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                      </svg>
                  </button>
