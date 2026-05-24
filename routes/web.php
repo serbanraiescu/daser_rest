@@ -72,3 +72,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfReport'])->name('admin.reports.pdf');
 });
 
+// Service Module (Touch Dashboard, Orders & Reports)
+Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class, 'module.enabled:service'])->group(function () {
+    Route::get('/service', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'index'])->name('service.index');
+    Route::post('/service/orders', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'storeOrder'])->name('service.orders.store');
+    Route::get('/service/orders/{order}', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'showOrder'])->name('service.orders.show');
+    Route::post('/service/orders/{order}/complete', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'completeOrder'])->name('service.orders.complete');
+    Route::post('/service/orders/{order}/cancel', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'cancelOrder'])->name('service.orders.cancel');
+    Route::get('/service/print-daily-report', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'printDailyReport'])->name('service.print-daily-report');
+    Route::get('/service/pdf-daily-report', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'pdfDailyReport'])->name('service.pdf-daily-report');
+});
+

@@ -82,6 +82,13 @@ class StaffAuthController extends Controller
             return redirect()->route('waiter.index'); 
         } elseif ($role === 'manager') {
              return redirect()->route('waiter.index');
+        } elseif ($role === 'service') {
+            if (\App\Modules\Settings\Models\CompanySetting::first()?->enable_service_module) {
+                return redirect()->route('service.index');
+            } else {
+                Session::forget(['staff_id', 'staff_role', 'staff_name']);
+                return redirect()->route('staff.login')->withErrors(['pin' => 'Modulul Service nu este activ.']);
+            }
         }
         
         return redirect()->route('staff.login')->withErrors(['pin' => 'Rol necunoscut: ' . $role]);

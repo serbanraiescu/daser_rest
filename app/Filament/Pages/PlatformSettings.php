@@ -218,6 +218,14 @@ class PlatformSettings extends Page implements HasForms
                                             ->label('Text Buton Acceptare')
                                             ->default('Accept'),
                                     ]),
+                                Section::make('Module Opționale')
+                                    ->description('Activează sau dezactivează modulele adiționale ale platformei.')
+                                    ->schema([
+                                        Toggle::make('enable_service_module')
+                                            ->label('Activează Modulul de Servicii (Service Module)')
+                                            ->helperText('Permite gestionarea categoriilor, serviciilor și a comenzilor speciale independente de restaurant.')
+                                            ->default(false),
+                                    ]),
                                 Section::make('Galerie Evenimente')
                                     ->schema([
                                         FileUpload::make('gallery_content')

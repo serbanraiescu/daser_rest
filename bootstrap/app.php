@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Modules\Licensing\Http\Middleware\CheckLicenseStatus::class,
             \App\Http\Middleware\SetLocale::class,
         ]);
+        $middleware->alias([
+            'module.enabled' => \App\Http\Middleware\ModuleEnabledMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
