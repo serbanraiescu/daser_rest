@@ -90,10 +90,12 @@
     </template>
 
     <!-- Action Button -->
+    @if(($nextStatus ?? '') !== 'delivered')
     <button 
         @click="updateStatus(order.id, '{{ $nextStatus }}')"
         class="w-full py-3 {{ $btnColor }} text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-95 flex justify-center items-center uppercase tracking-wider text-sm"
     >
         {{ $btnText }}
     </button>
+    @endif
 </div>
