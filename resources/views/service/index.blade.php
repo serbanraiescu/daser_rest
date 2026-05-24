@@ -18,6 +18,7 @@
     showPaymentModal: false,
     paymentMethod: 'cash',
     paymentNotes: '',
+    showMobileCart: false,
     
     // Cart operations
     addToCart(item) {
@@ -77,6 +78,7 @@
                 notes: item.notes ?? ''
             });
         });
+        this.showMobileCart = true;
     },
     
     async saveOrder(shouldComplete = false) {
@@ -290,22 +292,52 @@
             </div>
         </section>
 
+        <!-- Mobile/Tablet Backdrop for Cart -->
+        <div 
+            x-show="showMobileCart" 
+            class="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
+            @click="showMobileCart = false"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            x-cloak
+        ></div>
+
         <!-- RIGHT SIDE: Cart / Ticket Detail -->
-        <section class="w-[420px] bg-gray-900 border-l border-gray-800 flex flex-col h-full shadow-2xl relative">
+        <section 
+            class="bg-gray-900 flex flex-col h-full shadow-2xl relative transition-all duration-300 z-40
+                   fixed inset-y-0 right-0 w-[85vw] max-w-[400px] border-l border-gray-800
+                   lg:static lg:w-[380px] lg:max-w-none xl:w-[420px] lg:flex"
+            :class="showMobileCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
+        >
             <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
                 <div>
                     <h2 class="text-base font-black text-white uppercase tracking-tight" x-text="orderId ? 'Modificare Comandă #' + orderId : 'Comandă Nouă'"></h2>
                     <p class="text-xs text-gray-400 mt-0.5">Adaugă servicii în partea stângă</p>
                 </div>
-                <button 
-                    @click="clearForm()" 
-                    class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border border-gray-700"
-                    title="Coș nou"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button 
+                        @click="clearForm()" 
+                        class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border border-gray-700"
+                        title="Coș nou"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                    <!-- Close Mobile Cart Button -->
+                    <button 
+                        @click="showMobileCart = false" 
+                        class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border border-gray-700 lg:hidden"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Customer & Car details inputs -->
@@ -503,6 +535,34 @@
                 Confirmă Plată & Închide Comanda
             </button>
         </div>
+    </div>
+
+    <!-- Floating Bottom Bar for Mobile/Tablet Cart Toggle -->
+    <div 
+        class="lg:hidden fixed bottom-6 left-6 right-6 z-30 pointer-events-none"
+        x-show="cart.length > 0 && !showMobileCart"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-10"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 translate-y-10"
+        x-cloak
+    >
+        <button 
+            @click="showMobileCart = true"
+            class="pointer-events-auto w-full bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-2xl py-4 px-6 font-black text-sm uppercase tracking-wider flex items-center justify-between shadow-2xl shadow-amber-500/20 active:scale-[0.98] transition-all"
+        >
+            <div class="flex items-center gap-2.5">
+                <span class="relative flex h-5 w-5 bg-gray-950 text-amber-500 text-[10px] font-black items-center justify-center rounded-lg animate-pulse"
+                      x-text="cart.reduce((sum, item) => sum + item.quantity, 0)"></span>
+                <span>Vezi Comanda</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span x-text="getCartTotal().toFixed(2)"></span>
+                <span class="text-[10px] font-extrabold">{{ $settings->currency ?? 'RON' }}</span>
+            </div>
+        </button>
     </div>
 
 </div>
