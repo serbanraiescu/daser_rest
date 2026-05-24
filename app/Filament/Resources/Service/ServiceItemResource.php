@@ -39,7 +39,6 @@ class ServiceItemResource extends Resource
     {
         $settings = CompanySetting::first();
         $units = $settings?->measurement_units ?? ['buc', 'set', 'oră', 'km'];
-        $unitOptions = array_combine($units, $units);
 
         return $form
             ->schema([
@@ -58,11 +57,10 @@ class ServiceItemResource extends Resource
                     ->numeric()
                     ->prefix($settings?->currency ?? 'RON')
                     ->default(0.00),
-                Select::make('unit')
+                TextInput::make('unit')
                     ->label('Unitate de Măsură')
-                    ->options($unitOptions)
-                    ->creatable()
-                    ->placeholder('Alege sau scrie unitatea')
+                    ->datalist($units)
+                    ->placeholder('Alege sau scrie unitatea (ex: buc, set, oră, km)')
                     ->required(),
                 TextInput::make('sort_order')
                     ->label('Ordine Sortare')
