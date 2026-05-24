@@ -297,4 +297,47 @@ class PlatformSettings extends Page implements HasForms
             Notification::make()->danger()->title('Eroare')->body($e->getMessage())->send();
         }
     }
+
+    public function clearOrderHistoryAction(): Action
+    {
+        return Action::make('clearOrderHistory')
+            ->label('ȘTERGERE ISTORIC COMENZI & TESTE')
+            ->color('warning')
+            ->icon('heroicon-o-archive-box-x-mark')
+            ->requiresConfirmation()
+            ->modalHeading('Ștergere Istoric Comenzi & Service')
+            ->modalDescription('Această acțiune va șterge toate comenzile din restaurant, produsele comandate, detaliile fiscale și toate comenzile/fișele de la vulcanizare (Service Module). Produsele, categoriile, personalul și configurația sistemului NU vor fi șterse. Ești sigur?')
+            ->modalSubmitActionLabel('Da, șterge istoricul de teste')
+            ->action(function () {
+                $this->performOrderHistoryClear();
+            });
+    }
+
+    protected function performOrderHistoryClear()
+    {
+        try {
+            DB::beginTransaction();
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            
+            // Truncate restaurant orders tables
+            DB::table('orders')->truncate();
+            DB::table('order_items')->truncate();
+            DB::table('order_fiscal_details')->truncate();
+            
+            // Truncate service orders tables
+            DB::table('service_orders')->truncate();
+            DB::table('service_order_items')->truncate();
+            
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            DB::commit();
+
+            Notification::make()
+                ->success()
+                ->title('Istoricul de comenzi și fișe de service a fost șters cu succes!')
+                ->send();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Notification::make()->danger()->title('Eroare')->body($e->getMessage())->send();
+        }
+    }
 }
