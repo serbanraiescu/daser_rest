@@ -1,5 +1,5 @@
 @extends('layouts.staff')
-
+{{-- Waiter Menu View --}}
 @section('content')
 <div class="min-h-screen bg-white pb-24" x-data="{
     activeCategoryId: {{ ($settings->show_all_products_initially ?? false) ? "'all'" : ($categories->first()?->id ?? 'null') }},
