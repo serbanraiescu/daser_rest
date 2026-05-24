@@ -54,6 +54,7 @@ Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class])->group(func
     Route::get('/waiter/print-daily-report', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'printDailyReport'])->name('waiter.print-daily-report');
     Route::get('/waiter/pdf-daily-report', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'pdfDailyReport'])->name('waiter.pdf-daily-report');
     Route::get('/waiter/api/order/{table}', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'getOrderJson'])->name('waiter.api.order');
+    Route::get('/waiter/api/notifications', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'getNotifications'])->name('waiter.api.notifications');
     Route::post('/waiter/order/{order}/pay', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'payOrder'])->name('waiter.order.pay');
     Route::post('/waiter/order/{order}/pay-partial', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'payPartial'])->name('waiter.order.pay-partial');
     Route::get('/waiter/order/{order}/print', [\App\Modules\Staff\Http\Controllers\WaiterController::class, 'printBill'])->name('waiter.order.print');

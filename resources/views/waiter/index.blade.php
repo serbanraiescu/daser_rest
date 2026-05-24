@@ -326,6 +326,97 @@
         this.showNoteModal = false;
         this.currentNoteItem = null;
         this.currentNoteText = '';
+    },
+
+    // Notifications State
+    toasts: [],
+    notifiedItemIds: new Set(),
+
+    playNotificationSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(880, now);
+            gain1.gain.setValueAtTime(0.12, now);
+            gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(1320, now);
+            gain2.gain.setValueAtTime(0.06, now);
+            gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 1.3);
+            osc2.stop(now + 0.9);
+        } catch (e) {
+            console.error('AudioContext sound failed', e);
+        }
+    },
+
+    async checkReadyNotifications() {
+        try {
+            const response = await fetch('/waiter/api/notifications');
+            const data = await response.json();
+            if (data.success && data.items) {
+                let hasNewReady = false;
+                
+                data.items.forEach(item => {
+                    if (!this.notifiedItemIds.has(item.id)) {
+                        this.notifiedItemIds.add(item.id);
+                        
+                        const toast = {
+                            id: item.id,
+                            table_name: item.table_name,
+                            product_name: item.product_name,
+                            quantity: item.quantity,
+                            destination: item.destination,
+                            notes: item.notes,
+                            timestamp: Date.now()
+                        };
+                        this.toasts.push(toast);
+                        
+                        setTimeout(() => {
+                            this.dismissToast(toast.id);
+                        }, 10000);
+                        
+                        hasNewReady = true;
+                    }
+                });
+
+                if (hasNewReady) {
+                    this.playNotificationSound();
+                }
+
+                const currentReadyIds = new Set(data.items.map(i => i.id));
+                this.notifiedItemIds.forEach(id => {
+                    if (!currentReadyIds.has(id)) {
+                        this.notifiedItemIds.delete(id);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Eroare verificare notificări:', e);
+        }
+    },
+
+    dismissToast(id) {
+        this.toasts = this.toasts.filter(t => t.id !== id);
+    },
+
+    init() {
+        setTimeout(() => this.checkReadyNotifications(), 2000);
+        setInterval(() => this.checkReadyNotifications(), 10000);
     }
 }">
     <!-- Top Header -->
@@ -1113,6 +1204,62 @@
             window.addEventListener('resize', autoScale);
         });
     </script>
+    <!-- Beautiful Toast Notifications Container -->
+    <div class="fixed top-4 right-4 z-[9999] w-full max-w-sm flex flex-col gap-3 pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="pointer-events-auto w-full bg-white border border-gray-100 rounded-3xl p-5 shadow-2xl flex items-start gap-4 transition-all transform translate-y-0 duration-300 relative overflow-hidden group"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-x-10 scale-95"
+                 x-transition:enter-end="opacity-100 translate-x-0 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 translate-x-10 scale-95">
+                 
+                 <!-- Decorative Left Edge Color depending on destination -->
+                 <div class="absolute left-0 top-0 bottom-0 w-2.5"
+                      :class="toast.destination === 'bar' ? 'bg-indigo-500' : 'bg-green-500'"></div>
+                 
+                 <!-- Destination Icon/Badge -->
+                 <div class="w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center text-white"
+                      :class="toast.destination === 'bar' ? 'bg-indigo-500' : 'bg-green-500'">
+                     <!-- Bar Icon (Glass) or Kitchen Icon (Chef hat / food) -->
+                     <template x-if="toast.destination === 'bar'">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                         </svg>
+                     </template>
+                     <template x-if="toast.destination !== 'bar'">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                         </svg>
+                     </template>
+                 </div>
+                 
+                 <!-- Content -->
+                 <div class="flex-grow min-w-0 pr-4">
+                     <div class="flex items-center gap-2 mb-1">
+                         <span class="bg-gray-50 text-gray-800 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg"
+                               x-text="toast.destination === 'bar' ? 'BAR' : 'BUCĂTĂRIE'"></span>
+                         <span class="text-[9px] font-bold text-gray-400" x-text="'Masa ' + toast.table_name"></span>
+                     </div>
+                     <h4 class="text-sm font-black text-gray-900 leading-snug truncate" x-text="toast.product_name"></h4>
+                     <p class="text-xs font-bold text-orange-600 mt-0.5">
+                         Pregătit! Cantitate: <span x-text="toast.quantity"></span>
+                     </p>
+                     <template x-if="toast.notes">
+                         <p class="text-[10px] italic text-gray-400 mt-1 truncate" x-text="'Obs: ' + toast.notes"></p>
+                     </template>
+                 </div>
+                 
+                 <!-- Close Button -->
+                 <button @click="dismissToast(toast.id)" class="absolute right-4 top-4 text-gray-300 hover:text-gray-500 transition-colors">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                     </svg>
+                 </button>
+            </div>
+        </template>
+    </div>
 </div>
 
 

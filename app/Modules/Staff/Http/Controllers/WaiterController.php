@@ -499,4 +499,40 @@ class WaiterController extends Controller
             return back()->with('error', 'Eroare la generarea PDF-ului: ' . $e->getMessage());
         }
     }
+
+    public function getNotifications()
+    {
+        try {
+            $orders = Order::whereIn('status', ['pending', 'preparing', 'ready'])
+                ->with(['items' => function($q) {
+                    $q->where('status', 'ready');
+                }])
+                ->get();
+
+            $readyItems = [];
+            foreach ($orders as $order) {
+                foreach ($order->items as $item) {
+                    $readyItems[] = [
+                        'id' => $item->id,
+                        'order_id' => $order->id,
+                        'table_name' => $order->table_number ?? '?',
+                        'product_name' => $item->name,
+                        'quantity' => $item->quantity,
+                        'notes' => $item->notes,
+                        'destination' => $item->destination,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'items' => $readyItems,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
