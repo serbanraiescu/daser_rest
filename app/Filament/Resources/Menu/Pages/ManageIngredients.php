@@ -77,9 +77,8 @@ class ManageIngredients extends ManageRecords
                             $name = isset($row[$nameIndex]) ? trim((string)$row[$nameIndex]) : null;
                             if (empty($name)) continue;
                             
-                            $unit = isset($row[$unitIndex]) ? trim((string)$row[$row[$unitIndex] ?? $unitIndex]) : '';
-                            // Let's get actual unit safely
-                            if (isset($row[$unitIndex])) {
+                            $unit = '';
+                            if ($unitIndex !== null && isset($row[$unitIndex])) {
                                 $unit = trim((string)$row[$unitIndex]);
                             }
                             
