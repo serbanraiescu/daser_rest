@@ -15,7 +15,7 @@
     // Menu Modal State
     showMenuModal: false,
     categories: {{ $categories->toJson() }},
-    activeCategoryId: {{ $categories->first()?->id ?? 'null' }},
+    activeCategoryId: {{ ($settings->show_all_products_initially ?? false) ? "'all'" : ($categories->first()?->id ?? 'null') }},
     cart: [],
     isSendingOrder: false,
     showVariations: false,
@@ -111,6 +111,7 @@
         this.cart = [];
         this.showMobileCart = false;
         this.searchQuery = '';
+        this.activeCategoryId = {{ ($settings->show_all_products_initially ?? false) ? "'all'" : ($categories->first()?->id ?? 'null') }};
     },
 
     getProducts() {
@@ -126,8 +127,19 @@
             });
             return results;
         }
+        if (this.activeCategoryId === 'all') {
+            let results = [];
+            this.categories.forEach(cat => {
+                if (cat.products) {
+                    cat.products.forEach(prod => {
+                        results.push(prod);
+                    });
+                }
+            });
+            return results;
+        }
         const cat = this.categories.find(c => c.id === this.activeCategoryId);
-        return cat ? cat.products : [];
+        return cat ? (cat.products || []) : [];
     },
 
     getTotal() {
@@ -634,6 +646,15 @@
             <div class="flex-grow flex flex-col lg:flex-row overflow-hidden">
                 <!-- Side Categories (Fluid) -->
                 <div class="w-full lg:w-60 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-100 bg-gray-50/50 overflow-x-auto lg:overflow-y-auto p-3 lg:p-4 flex lg:flex-col gap-2 no-scrollbar transition-all duration-300">
+                    <!-- Static "Toate" button (always visible) -->
+                    <button @click="activeCategoryId = 'all'"
+                            class="px-4 py-2.5 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl text-[10px] lg:text-xs font-black whitespace-nowrap transition-all border-2 text-left lg:w-full uppercase tracking-widest"
+                            :class="activeCategoryId === 'all' 
+                                ? 'bg-gray-900 border-gray-900 text-white shadow-xl shadow-gray-900/10' 
+                                : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'">
+                        Toate
+                    </button>
+
                     <template x-for="cat in categories" :key="cat.id">
                         <button @click="activeCategoryId = cat.id"
                                 class="px-4 py-2.5 lg:px-5 lg:py-3 rounded-xl lg:rounded-2xl text-[10px] lg:text-xs font-black whitespace-nowrap transition-all border-2 text-left lg:w-full uppercase tracking-widest"
