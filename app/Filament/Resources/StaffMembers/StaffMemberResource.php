@@ -53,6 +53,7 @@ class StaffMemberResource extends Resource
                         'kitchen' => 'Kitchen',
                         'bar' => 'Bar',
                         'manager' => 'Manager',
+                        'service' => 'Service Module (Special)',
                     ])
                     ->required()
                     ->default('waiter'),
@@ -74,6 +75,8 @@ class StaffMemberResource extends Resource
                         'manager' => 'danger',
                         'kitchen', 'bar' => 'warning',
                         'waiter' => 'success',
+                        'service' => 'info',
+                        default => 'gray',
                     }),
                 ToggleColumn::make('is_active'),
             ])
