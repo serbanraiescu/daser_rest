@@ -1,30 +1,27 @@
 @extends('layouts.public')
 
+@php
+    $layout = $settings->public_menu_layout ?? 'app_cards';
+    $heroStyle = $settings->public_menu_hero_style ?? 'compact';
+    
+    $containerClass = match($layout) {
+        'classic_list' => 'max-w-5xl',
+        'app_cards' => 'max-w-7xl',
+        'image_grid' => 'max-w-7xl',
+        default => 'max-w-4xl',
+    };
+@endphp
+
 @section('content')
 <div class="bg-white min-h-screen pb-20" x-data="menuApp({ 
     activeMenuId: {{ $menus->first()?->id ?? 'null' }},
     currency: '{{ $settings->currency ?? 'RON' }}'
 })">
-    <!-- Menu Header -->
-    <div class="bg-gray-100 py-12 text-center relative">
-        <template x-if="tableNumber !== 'WEB'">
-            <div class="absolute top-4 left-4 bg-orange-600 text-white px-4 py-2 rounded-full font-bold shadow-lg">
-                Masa: <span x-text="tableNumber"></span>
-            </div>
-        </template>
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">{{ __('Our Menu') }}</h1>
-        <p class="text-gray-600 max-w-2xl mx-auto px-4">{{ __('Discover our delicious offerings, crafted with care.') }}</p>
-        
-        @if(!$settings->enable_ordering)
-        <div class="mt-6 mx-auto max-w-md bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm" role="alert">
-            <p class="font-bold">Momentan nu preluăm comenzi online.</p>
-            <p>Vă rugăm să ne contactați telefonic sau să reveniți mai târziu.</p>
-        </div>
-        @endif
-    </div>
+    <!-- Dynamic Menu Header (Hero) -->
+    @include('public.menu.parts.hero', ['heroStyle' => $heroStyle, 'settings' => $settings])
 
-    <!-- Menus Tabs (Sticky) -->
-    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm transition-all duration-300" :class="{'top-0': true}">
+    <!-- Menus Tabs (Sticky at top-0) -->
+    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm transition-all duration-300">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-center space-x-8 py-4 overflow-x-auto no-scrollbar">
                 @foreach($menus as $menu)
@@ -41,130 +38,32 @@
     </div>
 
     <!-- Menu Content -->
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="{{ $containerClass }} mx-auto px-4 sm:px-6 lg:px-8 py-8">
         @foreach($menus as $menu)
-            <div x-show="activeMenu === {{ $menu->id }}" x-cloak>
+            <div x-show="activeMenu === {{ $menu->id }}" x-cloak class="space-y-6">
                 
                 @if($menu->categories->isEmpty())
                     <div class="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
                         <p class="text-gray-500 text-lg">{{ __('No items available in this menu yet.') }}</p>
                     </div>
                 @else
-                    <!-- Category Quick Links -->
-                    <div class="flex flex-wrap gap-2 mb-16 justify-center">
-                        @foreach($menu->categories as $category)
-                            <a href="#cat-{{ $category->id }}" class="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-primary hover:text-primary transition-all shadow-sm">
-                                {{ $category->name }}
-                            </a>
-                        @endforeach
-                    </div>
+                    <!-- Category Tabs (Sticky under the menu tabs at top-14 / top-[56px]) -->
+                    @include('public.menu.parts.category-tabs', ['menu' => $menu])
 
-                    <div class="space-y-24">
+                    <!-- Categories and Products -->
+                    <div class="space-y-12 sm:space-y-16 mt-6">
                         @foreach($menu->categories as $category)
-                            <div id="cat-{{ $category->id }}" class="scroll-mt-32">
-                                <div class="text-center mb-12">
-                                    <h2 class="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4 inline-block relative px-10">
-                                        {{ $category->name }}
-                                        <div class="absolute top-1/2 left-0 w-8 h-px bg-primary/40"></div>
-                                        <div class="absolute top-1/2 right-0 w-8 h-px bg-primary/40"></div>
+                            <div id="cat-{{ $category->id }}" class="scroll-mt-36">
+                                <!-- Category Title (Compact) -->
+                                <div class="mb-6">
+                                    <h2 class="text-xl sm:text-2xl font-black text-gray-900 border-b border-gray-150/60 pb-2 flex items-center justify-between">
+                                        <span>{{ $category->name }}</span>
+                                        <span class="text-xs text-gray-400 font-bold uppercase tracking-wider bg-gray-50 px-2.5 py-1 rounded-full border border-gray-150/40">{{ $category->products->count() }} {{ __('produse') }}</span>
                                     </h2>
-                                    @if($category->image)
-                                        <div class="mt-4 max-w-lg mx-auto h-32 rounded-2xl overflow-hidden opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-                                            <img src="{{ asset('storage/' . $category->image) }}" class="w-full h-full object-cover">
-                                        </div>
-                                    @endif
                                 </div>
                                 
-                                <div class="space-y-6">
-                                    @foreach($category->products as $product)
-                                        <div class="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-300 group">
-                                            <div class="flex flex-col md:flex-row gap-6">
-                                                
-                                                <!-- Product Info -->
-                                                <div class="flex-grow order-2 md:order-1">
-                                                    <div class="flex justify-between items-start mb-1">
-                                                        <h3 class="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors">
-                                                            {{ $product->name }}
-                                                            @if($product->is_frozen)
-                                                                <span class="ml-2 inline-block" title="Produs congelat">
-                                                                    <svg class="w-4 h-4 text-blue-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                                                </span>
-                                                            @endif
-                                                        </h3>
-                                                        <div class="hidden md:block text-xl font-black text-gray-900">
-                                                            {{ number_format($product->price, 2) }} <span class="text-sm font-normal text-gray-400">{{ $settings->currency ?? 'RON' }}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    @if($product->measurement_value)
-                                                        <div class="text-xs font-bold text-primary uppercase tracking-widest mb-2">
-                                                            {{ (float)$product->measurement_value }} {{ $product->measurement_unit }}
-                                                        </div>
-                                                    @endif
-
-                                                    <p class="text-gray-500 text-sm mb-3 leading-relaxed">
-                                                        {{ $product->description }}
-                                                    </p>
-
-                                                    <!-- Ingredients & Allergens Summary -->
-                                                    <div class="flex flex-wrap gap-2 items-center">
-                                                        @if($product->ingredients->isNotEmpty())
-                                                            <div class="text-[10px] uppercase font-bold text-gray-400">Ingrediente:</div>
-                                                            <div class="text-xs text-gray-500 italic">
-                                                                {{ $product->ingredients->take(4)->pluck('name')->implode(', ') }}@if($product->ingredients->count() > 4)...@endif
-                                                            </div>
-                                                        @endif
-
-                                                        @if($product->allergenRelations->isNotEmpty())
-                                                            <div class="flex gap-1 ml-2">
-                                                                @foreach($product->allergenRelations as $allergen)
-                                                                    <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>
-                                                                @endforeach
-                                                            </div>
-                                                        @elseif($product->allergens)
-                                                             <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-bold border border-red-100 uppercase">Alergeni</span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-
-                                                <!-- Image Thumbnail (Optional) -->
-                                                @if($product->image)
-                                                    <div class="w-full md:w-32 h-48 md:h-32 flex-shrink-0 rounded-xl overflow-hidden order-1 md:order-2">
-                                                        <img src="{{ asset('storage/' . $product->image) }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
-                                                    </div>
-                                                @endif
-
-                                                <!-- Mobile Price & Global Action -->
-                                                <div class="flex items-center justify-between md:justify-end gap-4 order-3 w-full md:w-auto">
-                                                    <div class="md:hidden text-2xl font-black text-gray-900">
-                                                        {{ number_format($product->price, 2) }} <span class="text-sm font-normal text-gray-400">{{ $settings->currency ?? 'RON' }}</span>
-                                                    </div>
-                                                    
-                                                    @if($settings->enable_ordering && $product->is_available)
-                                                        <button 
-                                                            @click="openModal({{ $product->toJson() }})"
-                                                            class="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                                                        >
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                                            <span>{{ __('Adaugă') }}</span>
-                                                        </button>
-                                                    @else
-                                                        <button 
-                                                            @click="openModal({{ $product->toJson() }})"
-                                                            class="bg-gray-100 text-gray-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition-all flex items-center gap-2"
-                                                        >
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                                            <span>{{ __('Vezi Detalii') }}</span>
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-
-
-
-                                    @endforeach
-                                </div>
+                                <!-- Products Grid/List based on Selected Layout -->
+                                @include('public.menu.layouts.' . str_replace('_', '-', $layout), ['category' => $category])
                             </div>
                         @endforeach
                     </div>
@@ -192,7 +91,7 @@
                  x-transition:leave-start="opacity-100 scale-100"
                  x-transition:leave-end="opacity-0 scale-95"
                  class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]"
-            >
+             >
                 <!-- Close Button -->
                 <button @click="closeModal()" class="absolute top-4 right-4 z-10 p-2 bg-white/50 hover:bg-white rounded-full text-gray-500 hover:text-gray-900 transition-colors">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

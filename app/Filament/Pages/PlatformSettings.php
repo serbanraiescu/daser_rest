@@ -82,6 +82,27 @@ class PlatformSettings extends Page implements HasForms
                                             ->default(false)
                                             ->columnSpanFull(),
                                     ])->columns(3),
+                                Section::make('Meniu Public')
+                                    ->schema([
+                                        Select::make('public_menu_layout')
+                                            ->label('Layout meniu public')
+                                            ->options([
+                                                'classic_list' => 'Listă clasică',
+                                                'app_cards' => 'Carduri tip aplicație',
+                                                'image_grid' => 'Grid cu imagini',
+                                            ])
+                                            ->default('app_cards')
+                                            ->required(),
+                                        Select::make('public_menu_hero_style')
+                                            ->label('Stil antet meniu public')
+                                            ->options([
+                                                'compact' => 'Compact',
+                                                'centered' => 'Centrat',
+                                                'hidden' => 'Ascuns',
+                                            ])
+                                            ->default('compact')
+                                            ->required(),
+                                    ])->columns(2),
                                 Section::make('Date Fiscale')
                                     ->schema([
                                         Grid::make(3)->schema([

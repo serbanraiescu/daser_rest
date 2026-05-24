@@ -24,6 +24,8 @@ class CompanySetting extends Model
         'hide_ordering_button',
         'enable_service_module',
         'show_all_products_initially',
+        'public_menu_layout',
+        'public_menu_hero_style',
         'fiscal_code',
         'trade_register',
         'fiscal_address',
