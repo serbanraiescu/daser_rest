@@ -76,6 +76,11 @@ class PlatformSettings extends Page implements HasForms
                                         Toggle::make('hide_ordering_button')
                                             ->label('Ascunde complet butonul de comenzi pe site')
                                             ->default(false),
+                                        Toggle::make('show_all_products_initially')
+                                            ->label('Afișează toate produsele ospătarului la deschiderea mesei')
+                                            ->helperText('Ospătarul va vedea toate produsele din toate categoriile împreună în primă fază, putând apoi să filtreze pe o categorie anume.')
+                                            ->default(false)
+                                            ->columnSpanFull(),
                                     ])->columns(3),
                                 Section::make('Date Fiscale')
                                     ->schema([

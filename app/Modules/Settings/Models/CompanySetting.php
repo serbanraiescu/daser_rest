@@ -23,6 +23,7 @@ class CompanySetting extends Model
         'enable_delivery',
         'hide_ordering_button',
         'enable_service_module',
+        'show_all_products_initially',
         'fiscal_code',
         'trade_register',
         'fiscal_address',
@@ -42,6 +43,7 @@ class CompanySetting extends Model
 
     protected $casts = [
         'enable_service_module' => 'boolean',
+        'show_all_products_initially' => 'boolean',
         'social_links' => 'array',
         'opening_hours' => 'array',
         'vat_rates' => 'array',

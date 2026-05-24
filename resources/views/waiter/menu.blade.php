@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="min-h-screen bg-white pb-24" x-data="{
-    activeCategoryId: {{ $categories->first()?->id ?? 'null' }},
+    activeCategoryId: {{ ($settings->show_all_products_initially ?? false) ? "'all'" : ($categories->first()?->id ?? 'null') }},
     cart: [],
     categories: {{ $categories->toJson() }},
     table_number: '{{ $table->name }}',
@@ -19,16 +19,29 @@
             const query = this.searchQuery.toLowerCase().trim();
             let results = [];
             this.categories.forEach(cat => {
-                cat.products.forEach(prod => {
-                    if (prod.name.toLowerCase().includes(query)) {
+                if (cat.products) {
+                    cat.products.forEach(prod => {
+                        if (prod.name.toLowerCase().includes(query)) {
+                            results.push(prod);
+                        }
+                    });
+                }
+            });
+            return results;
+        }
+        if (this.activeCategoryId === 'all') {
+            let results = [];
+            this.categories.forEach(cat => {
+                if (cat.products) {
+                    cat.products.forEach(prod => {
                         results.push(prod);
-                    }
-                });
+                    });
+                }
             });
             return results;
         }
         const cat = this.categories.find(c => c.id === this.activeCategoryId);
-        return cat ? cat.products : [];
+        return cat ? (cat.products || []) : [];
     },
 
     selectProduct(product) {
@@ -124,6 +137,15 @@
         <!-- Category Horizontal Scroll -->
         <div class="bg-gray-50/50 border-b border-gray-100 overflow-x-auto no-scrollbar scroll-smooth p-2">
             <div class="flex space-x-2 px-2 max-w-4xl mx-auto">
+                <!-- Static "Toate" button (always visible) -->
+                <button @click="activeCategoryId = 'all'"
+                        class="px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border-2"
+                        :class="activeCategoryId === 'all' 
+                            ? 'bg-gray-900 border-gray-900 text-white shadow-md transform scale-105' 
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'">
+                    Toate
+                </button>
+
                 <template x-for="cat in categories" :key="cat.id">
                     <button @click="activeCategoryId = cat.id"
                             class="px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border-2"
@@ -159,7 +181,7 @@
             <div>
                 <div x-show="getProducts().length === 0" class="flex flex-col items-center justify-center py-20 text-gray-400" x-cloak>
                     <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <p class="text-sm font-bold uppercase tracking-widest text-center" x-text="searchQuery !== '' ? 'Niciun produs găsit pentru \'' + searchQuery + '\'' : 'Această categorie nu are produse'"></p>
+                    <p class="text-sm font-bold uppercase tracking-widest text-center" x-text="searchQuery !== '' ? 'Niciun produs găsit pentru \'' + searchQuery + '\'' : (categories.length === 0 ? 'Nu există produse disponibile.' : 'Această categorie nu are produse')"></p>
                 </div>
 
                 <div x-show="getProducts().length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
