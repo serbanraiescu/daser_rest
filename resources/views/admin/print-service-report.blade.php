@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raport Financiar - {{ $settings->site_name ?? 'Restaurant OS' }}</title>
+    <title>Raport Vulcanizare - {{ $settings->site_name ?? 'Restaurant OS' }}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -174,7 +174,7 @@
     <!-- Control Buttons Panel -->
     <div class="no-print no-print-panel">
         <button onclick="window.print()" class="btn">PRINTEAZĂ RAPORT (A4)</button>
-        <a href="{{ route('admin.reports.pdf', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate, 'selectedTable' => $selectedTable]) }}" class="btn btn-secondary">DESCARCĂ FORMAT PDF</a>
+        <a href="{{ route('admin.service-reports.pdf', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate]) }}" class="btn btn-secondary">DESCARCĂ FORMAT PDF</a>
         <p style="font-size: 12px; margin-top: 8px; color: #64748b; margin-bottom: 0;">Caseta de imprimare s-a deschis automat. Puteți salva documentul ca PDF sau îl puteți trimite direct către imprimanta A4.</p>
     </div>
 
@@ -191,11 +191,8 @@
                 </div>
             </td>
             <td style="width: 40%; text-align: right; vertical-align: top;">
-                <div class="bold large" style="color: #475569; text-transform: uppercase;">Raport Financiar & Performanță</div>
+                <div class="bold large" style="color: #475569; text-transform: uppercase;">Raport Financiar Vulcanizare</div>
                 <div class="bold" style="font-size: 12px; color: #d97706; margin-top: 4px;">{{ $range_title }}</div>
-                @if(isset($selectedTable) && $selectedTable !== 'all')
-                    <div style="font-size: 11px; color: #475569; font-weight: bold; margin-top: 2px;">Masă: {{ $selectedTable }}</div>
-                @endif
                 <div class="text-muted" style="font-size: 9px; margin-top: 4px;">Generat la: {{ now()->format('d.m.Y H:i') }}</div>
             </td>
         </tr>
@@ -209,10 +206,10 @@
             <td>
                 <div class="kpi-title">Vânzări Totale</div>
                 <div class="kpi-val text-success">{{ number_format($kpis['total_revenue'], 2) }} {{ $currency }}</div>
-                <div class="kpi-sub">Exclusiv comenzi anulate</div>
+                <div class="kpi-sub">Exclusiv fișe anulate</div>
             </td>
             <td>
-                <div class="kpi-title">Total Comenzi</div>
+                <div class="kpi-title">Total Mașini Servite</div>
                 <div class="kpi-val">{{ $kpis['total_orders'] }}</div>
                 <div class="kpi-sub">
                     <span class="text-success bold">{{ $kpis['successful_orders'] }} finalizate</span> | 
@@ -220,9 +217,9 @@
                 </div>
             </td>
             <td>
-                <div class="kpi-title">Valoare Medie</div>
+                <div class="kpi-title">Medie per Bon</div>
                 <div class="kpi-val text-info">{{ number_format($kpis['average_value'], 2) }} {{ $currency }}</div>
-                <div class="kpi-sub">Per comandă finalizată</div>
+                <div class="kpi-sub">Per fișă finalizată</div>
             </td>
             <td>
                 <div class="kpi-title">Rată Finalizare</div>
@@ -232,7 +229,7 @@
                     @endphp
                     {{ number_format($rate, 1) }}%
                 </div>
-                <div class="kpi-sub">Comenzi reușite vs total</div>
+                <div class="kpi-sub">Fișe reușite vs total</div>
             </td>
         </tr>
     </table>
@@ -243,15 +240,16 @@
         <thead>
             <tr>
                 <th style="width: 40%;" class="text-left">Metodă Plată</th>
-                <th style="width: 30%; text-align: center;">Comenzi încasate</th>
+                <th style="width: 30%; text-align: center;">Fișe încasate</th>
                 <th style="width: 30%;" class="text-right">Valoare Totală Încăsări</th>
             </tr>
         </thead>
         <tbody>
             @php
-                $cashCount = $history->where('status', 'paid')->where('payment_method', 'cash')->count() + $history->where('status', 'delivered')->where('payment_method', 'cash')->count();
-                $cardCount = $history->where('status', 'paid')->where('payment_method', 'card')->count() + $history->where('status', 'delivered')->where('payment_method', 'card')->count();
-                $onlineCount = $kpis['successful_orders'] - ($cashCount + $cardCount);
+                $cashCount = $history->where('status', 'completed')->where('payment_method', 'cash')->count();
+                $cardCount = $history->where('status', 'completed')->where('payment_method', 'card')->count();
+                $mixedCount = $history->where('status', 'completed')->where('payment_method', 'mixed')->count();
+                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount);
             @endphp
             <tr>
                 <td class="bold">Încasări CASH</td>
@@ -259,14 +257,19 @@
                 <td class="text-right font-bold text-success">{{ number_format($kpis['cash_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr>
-                <td class="bold">Încasări CARD (la POS)</td>
+                <td class="bold">Încasări CARD</td>
                 <td class="text-center font-bold">{{ $cardCount }}</td>
                 <td class="text-right font-bold text-success">{{ number_format($kpis['card_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr>
-                <td class="bold">Încasări ONLINE / Alte metode</td>
-                <td class="text-center font-bold">{{ $onlineCount }}</td>
-                <td class="text-right font-bold text-success">{{ number_format($kpis['online_revenue'], 2) }} {{ $currency }}</td>
+                <td class="bold">Încasări MIXTE</td>
+                <td class="text-center font-bold">{{ $mixedCount }}</td>
+                <td class="text-right font-bold text-success">{{ number_format($kpis['mixed_revenue'], 2) }} {{ $currency }}</td>
+            </tr>
+            <tr>
+                <td class="bold">Alte încasări / Nespecificate</td>
+                <td class="text-center font-bold">{{ $unpaidCount }}</td>
+                <td class="text-right font-bold text-success">{{ number_format($kpis['unpaid_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr style="background-color: #f1f5f9 !important;">
                 <td class="bold large">TOTAL GENERAL VENITURI</td>
@@ -276,30 +279,30 @@
         </tbody>
     </table>
 
-    <!-- Side by Side Tables: Top Products and Waiters -->
+    <!-- Side by Side Tables: Top Services and Operators -->
     <table style="width: 100%; border: 0; margin-bottom: 24px;" cellpadding="0" cellspacing="0">
         <tr>
-            <!-- Left Side: Top Products -->
+            <!-- Left Side: Top Services -->
             <td style="width: 48%; border: 0; padding: 0; vertical-align: top; background: transparent !important;">
-                <div class="bold large mb-2" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Top Produse Vândute</div>
+                <div class="bold large mb-2" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Top Servicii Vândute</div>
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th class="text-left">Produs</th>
+                            <th class="text-left">Serviciu</th>
                             <th style="width: 25%; text-align: center;">Cantitate</th>
                             <th style="width: 35%;" class="text-right">Venit</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse(array_slice($products, 0, 8) as $prod)
+                        @forelse(array_slice($services, 0, 8) as $srv)
                             <tr>
-                                <td class="bold">{{ $prod->name }}</td>
-                                <td class="text-center font-bold">{{ $prod->quantity_sold }}</td>
-                                <td class="text-right text-success bold">{{ number_format($prod->revenue, 2) }}</td>
+                                <td class="bold">{{ $srv->name }}</td>
+                                <td class="text-center font-bold">{{ $srv->quantity_sold }}</td>
+                                <td class="text-right text-success bold">{{ number_format($srv->revenue, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="text-center text-muted">Niciun produs vândut.</td>
+                                <td colspan="3" class="text-center text-muted">Niciun serviciu executat.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -309,27 +312,27 @@
             <!-- Spacer column -->
             <td style="width: 4%; border: 0; padding: 0; background: transparent !important;"></td>
 
-            <!-- Right Side: Waiter Performance -->
+            <!-- Right Side: Operators Performance -->
             <td style="width: 48%; border: 0; padding: 0; vertical-align: top; background: transparent !important;">
-                <div class="bold large mb-2" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Performanță Ospătari</div>
+                <div class="bold large mb-2" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Performanță Angajați</div>
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th class="text-left">Ospătar</th>
-                            <th style="width: 25%; text-align: center;">Comenzi</th>
+                            <th class="text-left">Operator / Angajat</th>
+                            <th style="width: 25%; text-align: center;">Fișe</th>
                             <th style="width: 35%;" class="text-right">Vânzări</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($waiters as $waiter)
+                        @forelse($staff as $stf)
                             <tr>
-                                <td class="bold">{{ $waiter->waiter_name }}</td>
-                                <td class="text-center font-bold">{{ $waiter->orders_count }}</td>
-                                <td class="text-right text-success bold">{{ number_format($waiter->total_sales, 2) }}</td>
+                                <td class="bold">{{ $stf->staff_name }}</td>
+                                <td class="text-center font-bold">{{ $stf->orders_count }}</td>
+                                <td class="text-right text-success bold">{{ number_format($stf->total_sales, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="text-center text-muted">Nicio vânzare înregistrată.</td>
+                                <td colspan="3" class="text-center text-muted">Nicio fișă înregistrată.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -339,45 +342,39 @@
     </table>
 
     <!-- Detailed Order History -->
-    <div class="bold large mb-2 mt-6" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px; page-break-before: auto;">Istoric Detaliat Comenzi</div>
+    <div class="bold large mb-2 mt-6" style="text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px; page-break-before: auto;">Istoric Detaliat Vulcanizare / Servicii</div>
     <table style="width: 100%;">
         <thead>
             <tr>
-                <th style="width: 15%;" class="text-left">Nr. Comandă</th>
-                <th style="width: 10%; text-align: center;">Masă</th>
+                <th style="width: 15%;" class="text-left">Fișă / ID</th>
+                <th style="width: 20%; text-align: center;">Număr Mașină</th>
                 <th style="width: 15%; text-align: center;">Metodă Plată</th>
-                <th style="width: 20%; text-align: center;">Dată & Oră</th>
-                <th style="width: 20%;" class="text-right">Valoare</th>
+                <th style="width: 15%; text-align: center;">Dată & Oră</th>
+                <th style="width: 15%;" class="text-right">Valoare</th>
                 <th style="width: 20%; text-align: center;">Stare</th>
             </tr>
         </thead>
         <tbody>
             @forelse($history as $order)
                 <tr>
-                    <td class="bold">{{ $order->order_number }}</td>
-                    <td class="text-center">Masa {{ $order->table_number ?? '-' }}</td>
+                    <td class="bold">#{{ $order->id }}</td>
+                    <td class="text-center font-bold">{{ $order->vehicle_number ?? '-' }}</td>
                     <td class="text-center uppercase" style="font-size: 9px; font-weight: bold; color: #475569;">
-                        {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : 'Online') }}
+                        {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : 'Nespecificată')) }}
                     </td>
                     <td class="text-center text-muted" style="font-size: 10px;">{{ $order->created_at->format('d.m.Y H:i') }}</td>
                     <td class="text-right bold">{{ number_format($order->total, 2) }} {{ $currency }}</td>
                     <td class="text-center">
                         @php
                             $badgeClass = [
-                                'paid' => 'badge-success',
-                                'delivered' => 'badge-info',
-                                'pending' => 'badge-warning',
-                                'preparing' => 'badge-info',
-                                'ready' => 'badge-warning',
+                                'completed' => 'badge-success',
+                                'open' => 'badge-warning',
                                 'cancelled' => 'badge-danger',
                             ][$order->status] ?? 'badge-gray';
                             
                             $badgeLabel = [
-                                'paid' => 'Achitată',
-                                'delivered' => 'Terminată',
-                                'pending' => 'În Așteptare',
-                                'preparing' => 'În Pregătire',
-                                'ready' => 'Pregătită',
+                                'completed' => 'Finalizată',
+                                'open' => 'Deschisă',
                                 'cancelled' => 'Anulată',
                             ][$order->status] ?? $order->status;
                         @endphp
@@ -394,7 +391,7 @@
 
     <!-- Footer of A4 Report -->
     <div style="margin-top: 40px; border-top: 1px dashed #cbd5e1; padding-top: 12px; text-align: center; color: #64748b; font-size: 9px; font-style: italic;">
-        Generat automat de Daser Restaurant OS. Raport destinat uzului intern.
+        Generat automat de Daser Vulcanizare/Service OS. Raport destinat uzului intern.
         <br>
         © {{ date('Y') }} {{ $settings->site_name ?? 'Restaurant OS' }}. Toate drepturile rezervate.
     </div>

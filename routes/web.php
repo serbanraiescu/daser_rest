@@ -71,6 +71,8 @@ Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class])->group(func
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/reports/print', [\App\Http\Controllers\AdminReportController::class, 'printReport'])->name('admin.reports.print');
     Route::get('/admin/reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfReport'])->name('admin.reports.pdf');
+    Route::get('/admin/service-reports/print', [\App\Http\Controllers\AdminReportController::class, 'printServiceReport'])->name('admin.service-reports.print');
+    Route::get('/admin/service-reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfServiceReport'])->name('admin.service-reports.pdf');
 });
 
 // Service Module (Touch Dashboard, Orders & Reports)

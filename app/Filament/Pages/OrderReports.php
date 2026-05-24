@@ -22,6 +22,7 @@ class OrderReports extends Page
     public string $selectedDate = '';
     public string $startDate = '';
     public string $endDate = '';
+    public string $selectedTable = 'all';
     
     public ?array $selectedOrderItems = null;
     public ?string $selectedOrderNumber = null;
@@ -82,6 +83,9 @@ class OrderReports extends Page
 
         // 1. KPI-uri Generale
         $ordersQuery = Order::whereBetween('created_at', [$start, $end]);
+        if ($this->selectedTable !== 'all') {
+            $ordersQuery->where('table_number', $this->selectedTable);
+        }
         
         $totalOrders = $ordersQuery->count();
         $successfulOrders = (clone $ordersQuery)->whereIn('status', ['paid', 'delivered'])->count();
@@ -90,11 +94,16 @@ class OrderReports extends Page
         $averageValue = $successfulOrders > 0 ? $totalRevenue / $successfulOrders : 0;
 
         // 2. Vânzări Produse (Grupate pe nume din order_items)
-        $productSales = DB::table('order_items')
+        $productSalesQuery = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', ['paid', 'delivered'])
-            ->whereBetween('orders.created_at', [$start, $end])
-            ->select(
+            ->whereBetween('orders.created_at', [$start, $end]);
+        
+        if ($this->selectedTable !== 'all') {
+            $productSalesQuery->where('orders.table_number', $this->selectedTable);
+        }
+
+        $productSales = $productSalesQuery->select(
                 'order_items.name',
                 DB::raw('SUM(order_items.quantity) as quantity_sold'),
                 DB::raw('SUM(order_items.price * order_items.quantity) as revenue')
@@ -105,10 +114,15 @@ class OrderReports extends Page
             ->toArray();
 
         // 4. Istoric Comenzi Detaliat
-        $history = Order::with('waiter')
+        $historyQuery = Order::with('waiter')
             ->whereBetween('created_at', [$start, $end])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if ($this->selectedTable !== 'all') {
+            $historyQuery->where('table_number', $this->selectedTable);
+        }
+
+        $history = $historyQuery->get();
 
         // 3. Performanță Ospătari (Calculată în PHP pentru a folosi helperul inteligent)
         $waiterSalesMap = [];
@@ -183,5 +197,15 @@ class OrderReports extends Page
         $startF = Carbon::parse($start)->format('d.m.Y');
         $endF = Carbon::parse($end)->format('d.m.Y');
         return $startF === $endF ? "Ziua: $startF" : "Perioada: $startF - $endF";
+    }
+
+    public function getUniqueTables(): array
+    {
+        return Order::whereNotNull('table_number')
+            ->where('table_number', '!=', '')
+            ->distinct()
+            ->orderBy('table_number', 'asc')
+            ->pluck('table_number')
+            ->toArray();
     }
 }

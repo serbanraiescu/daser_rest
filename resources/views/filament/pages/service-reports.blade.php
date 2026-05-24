@@ -2,8 +2,8 @@
     @php
         $data = $this->getReportData();
         $kpis = $data['kpis'];
-        $products = $data['products'];
-        $waiters = $data['waiters'];
+        $services = $data['services'];
+        $staffMembers = $data['staff'];
         $history = $data['history'];
         $rangeTitle = $data['range_title'];
         $company = \App\Modules\Settings\Models\CompanySetting::first();
@@ -17,7 +17,7 @@
             <div class="flex justify-between items-end">
                 <div>
                     <h1 class="text-3xl font-black uppercase tracking-tight text-gray-900">{{ $siteName }}</h1>
-                    <p class="text-sm text-gray-500 font-bold uppercase tracking-wider mt-1">Raport Performanță Vânzări</p>
+                    <p class="text-sm text-gray-500 font-bold uppercase tracking-wider mt-1">Raport Performanță Vulcanizare & Servicii</p>
                 </div>
                 <div class="text-right">
                     <p class="text-sm font-semibold text-gray-700">{{ $rangeTitle }}</p>
@@ -33,7 +33,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
                     </svg>
-                    Analiză Performanță Vânzări
+                    Analiză Performanță Vulcanizare
                 </h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">
                     {{ $rangeTitle }}
@@ -70,19 +70,6 @@
                     </button>
                 </div>
 
-                <!-- Table Selector Dropdown -->
-                <div class="relative w-full sm:w-auto">
-                    <select 
-                        wire:model.live="selectedTable" 
-                        class="w-full sm:w-auto px-4 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:text-white font-bold"
-                    >
-                        <option value="all">Toate Mesele</option>
-                        @foreach($this->getUniqueTables() as $tableNum)
-                            <option value="{{ $tableNum }}">Masa {{ $tableNum }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <!-- Date Inputs based on Period -->
                 <div class="flex items-center gap-2">
                     @if($period !== 'custom')
@@ -114,7 +101,7 @@
 
                 <!-- A4 Print & PDF Buttons -->
                 <a 
-                    href="{{ route('admin.reports.print', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate, 'selectedTable' => $selectedTable]) }}" 
+                    href="{{ route('admin.service-reports.print', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate]) }}" 
                     target="_blank"
                     class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm focus:ring-2 focus:ring-primary-500 print:hidden cursor-pointer"
                 >
@@ -125,7 +112,7 @@
                 </a>
 
                 <a 
-                    href="{{ route('admin.reports.pdf', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate, 'selectedTable' => $selectedTable]) }}" 
+                    href="{{ route('admin.service-reports.pdf', ['period' => $period, 'selectedDate' => $selectedDate, 'startDate' => $startDate, 'endDate' => $endDate]) }}" 
                     class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-all shadow-sm focus:ring-2 focus:ring-amber-500 print:hidden cursor-pointer"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -133,7 +120,6 @@
                     </svg>
                     Descarcă PDF
                 </a>
-
             </div>
         </div>
 
@@ -143,7 +129,7 @@
             <div class="relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group duration-300">
                 <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Vânzări Totale</p>
+                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Încasări Vulcanizare</p>
                     <div class="p-2.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -160,7 +146,7 @@
             <div class="relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group duration-300">
                 <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Comenzi</p>
+                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Mașini Servite</p>
                     <div class="p-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -170,7 +156,7 @@
                 <div class="mt-4">
                     <p class="text-2xl font-black text-gray-900 dark:text-white">{{ $kpis['total_orders'] }}</p>
                     <div class="flex gap-2 items-center text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        <span class="text-emerald-500 font-semibold">{{ $kpis['successful_orders'] }} finale</span>
+                        <span class="text-emerald-500 font-semibold">{{ $kpis['successful_orders'] }} finalizate</span>
                         <span>•</span>
                         <span class="text-red-500 font-semibold">{{ $kpis['cancelled_orders'] }} anulate</span>
                     </div>
@@ -181,7 +167,7 @@
             <div class="relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group duration-300">
                 <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Valoare Medie Comandă</p>
+                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Medie per Bon / Fișă</p>
                     <div class="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -190,7 +176,7 @@
                 </div>
                 <div class="mt-4">
                     <p class="text-2xl font-black text-gray-900 dark:text-white">{{ number_format($kpis['average_value'], 2) }} <span class="text-sm font-bold text-gray-400 dark:text-gray-500">{{ $currency }}</span></p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Calculată din comenzi finalizate</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Calculat din comenzi finalizate</p>
                 </div>
             </div>
 
@@ -215,37 +201,37 @@
             </div>
         </div>
 
-        <!-- 3. Tables Row: Top Products & Waiter Reports -->
+        <!-- 3. Tables Row: Top Services & Staff reports -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-grid-two">
-            <!-- Top Products Table -->
+            <!-- Top Services Table -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
-                    Top Produse Vândute
+                    Top Servicii Vândute
                 </h3>
 
                 <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
                     <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                         <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
                             <tr>
-                                <th class="px-6 py-3">Produs</th>
+                                <th class="px-6 py-3">Serviciu / Operațiune</th>
                                 <th class="px-6 py-3 text-center">Cantitate</th>
                                 <th class="px-6 py-3 text-right">Total Venituri</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                            @forelse($products as $prod)
+                            @forelse($services as $srv)
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-6 py-3 font-semibold text-gray-800 dark:text-gray-200">{{ $prod->name }}</td>
-                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $prod->quantity_sold }}</td>
-                                    <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($prod->revenue, 2) }} {{ $currency }}</td>
+                                    <td class="px-6 py-3 font-semibold text-gray-880 dark:text-gray-200">{{ $srv->name }}</td>
+                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $srv->quantity_sold }}</td>
+                                    <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($srv->revenue, 2) }} {{ $currency }}</td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="3" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500">
-                                        Niciun produs vândut în perioada selectată.
+                                        Niciun serviciu vândut în perioada selectată.
                                     </td>
                                 </tr>
                             @endforelse
@@ -254,32 +240,32 @@
                 </div>
             </div>
 
-            <!-- Sales By Waiter Table -->
+            <!-- Performance By Staff Members Table -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    Performanță pe Ospătari
+                    Performanță pe Operatori (Mecanici / Vulcanizatori)
                 </h3>
 
                 <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
                     <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                         <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
                             <tr>
-                                <th class="px-6 py-3">Ospătar</th>
-                                <th class="px-6 py-3 text-center">Număr Comenzi</th>
+                                <th class="px-6 py-3">Operator</th>
+                                <th class="px-6 py-3 text-center">Fișe Finalizate</th>
                                 <th class="px-6 py-3 text-right">Vânzări Totale</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                            @forelse($waiters as $waiter)
+                            @forelse($staffMembers as $stf)
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td class="px-6 py-3 font-semibold text-gray-800 dark:text-gray-200">
-                                        {{ $waiter->waiter_name }}
+                                        {{ $stf->staff_name }}
                                     </td>
-                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $waiter->orders_count }}</td>
-                                    <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($waiter->total_sales, 2) }} {{ $currency }}</td>
+                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $stf->orders_count }}</td>
+                                    <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($stf->total_sales, 2) }} {{ $currency }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -300,19 +286,19 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Istoric Detaliat Comenzi
+                Istoric Detaliat Vulcanizare / Servicii
             </h3>
 
             <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
                 <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                     <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
                         <tr>
-                            <th class="px-6 py-3">Număr Comandă</th>
-                            <th class="px-6 py-3">Masă</th>
+                            <th class="px-6 py-3">Nr. Fișă / ID</th>
+                            <th class="px-6 py-3">Număr Mașină</th>
                             <th class="px-6 py-3">Metodă Plată</th>
                             <th class="px-6 py-3">Dată & Oră</th>
                             <th class="px-6 py-3 text-right">Valoare</th>
-                            <th class="px-6 py-3">Ospătar</th>
+                            <th class="px-6 py-3">Angajat (Operator)</th>
                             <th class="px-6 py-3 text-center">Stare</th>
                             <th class="px-6 py-3 text-center print:hidden">Acțiuni</th>
                         </tr>
@@ -320,30 +306,31 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         @forelse($history as $order)
                             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td class="px-6 py-3 font-semibold text-gray-900 dark:text-white">{{ $order->order_number }}</td>
+                                <td class="px-6 py-3 font-semibold text-gray-900 dark:text-white">#{{ $order->id }}</td>
                                 <td class="px-6 py-3">
-                                    <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300">
-                                        Masa {{ $order->table_number }}
-                                    </span>
+                                    @if($order->vehicle_number)
+                                        <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300">
+                                            {{ $order->vehicle_number }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500 italic text-xs">Nespeficat</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-3 uppercase text-xs font-bold text-gray-600 dark:text-gray-400">
-                                    {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : 'Online') }}
+                                    {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : 'Nespecificată')) }}
                                 </td>
                                 <td class="px-6 py-3 text-xs">{{ $order->created_at->format('d.m.Y H:i') }}</td>
                                 <td class="px-6 py-3 text-right font-bold text-gray-900 dark:text-white">{{ number_format($order->total, 2) }} {{ $currency }}</td>
                                 <td class="px-6 py-3 font-medium">
                                     <span class="text-sm text-gray-700 dark:text-gray-300">
-                                        {{ \App\Filament\Pages\OrderReports::resolveWaiterName($order) }}
+                                        {{ $order->staff ? $order->staff->name : 'Nespecificat' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-3 text-center">
                                     @php
                                         $statusConfig = [
-                                            'paid' => ['label' => 'Achitată', 'class' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'],
-                                            'delivered' => ['label' => 'Terminată', 'class' => 'bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400'],
-                                            'pending' => ['label' => 'În Așteptare', 'class' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'],
-                                            'preparing' => ['label' => 'În Pregătire', 'class' => 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'],
-                                            'ready' => ['label' => 'Pregătită', 'class' => 'bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400'],
+                                            'completed' => ['label' => 'Finalizată', 'class' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'],
+                                            'open' => ['label' => 'Deschisă', 'class' => 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'],
                                             'cancelled' => ['label' => 'Anulată', 'class' => 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'],
                                         ][$order->status] ?? ['label' => $order->status, 'class' => 'bg-gray-100 text-gray-700'];
                                     @endphp
@@ -360,14 +347,14 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
-                                        Vezi Produse
+                                        Vezi Servicii
                                     </button>
                                 </td>
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="8" class="px-6 py-10 text-center text-gray-400 dark:text-gray-500">
-                                    Nicio comandă înregistrată în perioada selectată.
+                                    Nicio fișă de vulcanizare înregistrată în perioada selectată.
                                 </td>
                             </tr>
                         @endforelse
@@ -378,7 +365,7 @@
     </div>
 
     <!-- 5. Dynamic Order Details Modal -->
-    @if($showOrderModal && $selectedOrderItems)
+    @if($showServiceOrderModal && $selectedServiceOrderItems)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-fade-in">
             <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all duration-300 scale-100 flex flex-col max-h-[85vh]">
                 
@@ -386,9 +373,9 @@
                 <div class="p-6 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-black text-gray-900 dark:text-white">
-                            Detalii Comandă: {{ $selectedOrderNumber }}
+                            Servicii din Fișa #{{ $selectedOrderId }} (Mașină: {{ $selectedVehicleNumber }})
                         </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Produse adăugate în această comandă</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Servicii și operațiuni executate pe această fișă</p>
                     </div>
                     <button 
                         wire:click="closeOrderModal" 
@@ -406,7 +393,7 @@
                         <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                             <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
                                 <tr>
-                                    <th class="px-6 py-3">Produs</th>
+                                    <th class="px-6 py-3">Serviciu</th>
                                     <th class="px-6 py-3 text-center">Cantitate</th>
                                     <th class="px-6 py-3 text-right">Preț Unitar</th>
                                     <th class="px-6 py-3 text-right">Subtotal</th>
@@ -414,9 +401,9 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 @php $modalTotal = 0; @endphp
-                                @foreach($selectedOrderItems as $item)
+                                @foreach($selectedServiceOrderItems as $item)
                                     @php 
-                                        $subtotal = $item['price'] * $item['quantity'];
+                                        $subtotal = $item['unit_price'] * $item['quantity'];
                                         $modalTotal += $subtotal;
                                     @endphp
                                     <tr class="hover:bg-gray-50/30 transition-colors">
@@ -429,7 +416,7 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">{{ $item['quantity'] }}</td>
-                                        <td class="px-6 py-4 text-right">{{ number_format($item['price'], 2) }} {{ $currency }}</td>
+                                        <td class="px-6 py-4 text-right">{{ number_format($item['unit_price'], 2) }} {{ $currency }}</td>
                                         <td class="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
                                             {{ number_format($subtotal, 2) }} {{ $currency }}
                                         </td>
@@ -442,7 +429,7 @@
 
                 <!-- Modal Footer -->
                 <div class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Comandă</p>
+                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Fișă Servicii</p>
                     <p class="text-xl font-black text-emerald-600 dark:text-emerald-400">
                         {{ number_format($modalTotal, 2) }} {{ $currency }}
                     </p>

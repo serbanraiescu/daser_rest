@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Orders\Models\Order;
+use App\Modules\Service\Models\ServiceOrder;
 use App\Modules\Settings\Models\CompanySetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class AdminReportController extends Controller
         $selectedDate = $request->query('selectedDate', now()->format('Y-m-d'));
         $startDate = $request->query('startDate', now()->subDays(7)->format('Y-m-d'));
         $endDate = $request->query('endDate', now()->format('Y-m-d'));
+        $selectedTable = $request->query('selectedTable', 'all');
 
         // Calculate date range matching Filament OrderReports
         $dateRange = $this->getDateRange($period, $selectedDate, $startDate, $endDate);
@@ -29,6 +31,9 @@ class AdminReportController extends Controller
 
         // 1. General KPIs
         $ordersQuery = Order::whereBetween('created_at', [$start, $end]);
+        if ($selectedTable !== 'all') {
+            $ordersQuery->where('table_number', $selectedTable);
+        }
         
         $totalOrders = $ordersQuery->count();
         $successfulOrders = (clone $ordersQuery)->whereIn('status', ['paid', 'delivered'])->count();
@@ -37,11 +42,16 @@ class AdminReportController extends Controller
         $averageValue = $successfulOrders > 0 ? $totalRevenue / $successfulOrders : 0;
 
         // 2. Product Sales
-        $productSales = DB::table('order_items')
+        $productSalesQuery = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', ['paid', 'delivered'])
-            ->whereBetween('orders.created_at', [$start, $end])
-            ->select(
+            ->whereBetween('orders.created_at', [$start, $end]);
+
+        if ($selectedTable !== 'all') {
+            $productSalesQuery->where('orders.table_number', $selectedTable);
+        }
+
+        $productSales = $productSalesQuery->select(
                 'order_items.name',
                 DB::raw('SUM(order_items.quantity) as quantity_sold'),
                 DB::raw('SUM(order_items.price * order_items.quantity) as revenue')
@@ -52,10 +62,15 @@ class AdminReportController extends Controller
             ->toArray();
 
         // 3. Detailed History
-        $history = Order::with('waiter')
+        $historyQuery = Order::with('waiter')
             ->whereBetween('created_at', [$start, $end])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if ($selectedTable !== 'all') {
+            $historyQuery->where('table_number', $selectedTable);
+        }
+
+        $history = $historyQuery->get();
 
         // 4. Waiter Performance & Payment Breakdown
         $waiterSalesMap = [];
@@ -119,6 +134,7 @@ class AdminReportController extends Controller
             'selectedDate' => $selectedDate,
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'selectedTable' => $selectedTable,
         ];
     }
 
@@ -147,6 +163,151 @@ class AdminReportController extends Controller
             $pdf->setPaper('a4', 'portrait');
             
             $filename = 'raport-admin-' . Str::slug($data['range_title']) . '-' . now()->format('d-m-Y') . '.pdf';
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Eroare la generarea PDF-ului: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Compile Service report data based on parameters.
+     */
+    private function compileServiceReportData(Request $request): array
+    {
+        $period = $request->query('period', 'daily');
+        $selectedDate = $request->query('selectedDate', now()->format('Y-m-d'));
+        $startDate = $request->query('startDate', now()->subDays(7)->format('Y-m-d'));
+        $endDate = $request->query('endDate', now()->format('Y-m-d'));
+
+        // Calculate date range
+        $dateRange = $this->getDateRange($period, $selectedDate, $startDate, $endDate);
+        $start = $dateRange['start'];
+        $end = $dateRange['end'];
+
+        // 1. General KPIs
+        $ordersQuery = ServiceOrder::whereBetween('created_at', [$start, $end]);
+        
+        $totalOrders = $ordersQuery->count();
+        $successfulOrders = (clone $ordersQuery)->where('status', 'completed')->count();
+        $cancelledOrders = (clone $ordersQuery)->where('status', 'cancelled')->count();
+        $totalRevenue = (clone $ordersQuery)->where('status', 'completed')->sum('total');
+        $averageValue = $successfulOrders > 0 ? $totalRevenue / $successfulOrders : 0;
+
+        // 2. Service Sales
+        $serviceSales = DB::table('service_order_items')
+            ->join('service_orders', 'service_order_items.service_order_id', '=', 'service_orders.id')
+            ->where('service_orders.status', 'completed')
+            ->whereBetween('service_orders.created_at', [$start, $end])
+            ->select(
+                'service_order_items.name',
+                DB::raw('SUM(service_order_items.quantity) as quantity_sold'),
+                DB::raw('SUM(service_order_items.line_total) as revenue')
+            )
+            ->groupBy('service_order_items.name')
+            ->orderBy('quantity_sold', 'desc')
+            ->get()
+            ->toArray();
+
+        // 3. Detailed History
+        $history = ServiceOrder::with('staff')
+            ->whereBetween('created_at', [$start, $end])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 4. Staff Performance & Payment Breakdown
+        $staffSalesMap = [];
+        $cashRevenue = 0.0;
+        $cardRevenue = 0.0;
+        $mixedRevenue = 0.0;
+        $unpaidRevenue = 0.0;
+
+        foreach ($history as $order) {
+            if ($order->status !== 'completed') {
+                continue;
+            }
+
+            // Pay method breakdown
+            if ($order->payment_method === 'cash') {
+                $cashRevenue += floatval($order->total);
+            } elseif ($order->payment_method === 'card') {
+                $cardRevenue += floatval($order->total);
+            } elseif ($order->payment_method === 'mixed') {
+                $mixedRevenue += floatval($order->total);
+            } else {
+                $unpaidRevenue += floatval($order->total);
+            }
+
+            // Staff sales map
+            $staffName = $order->staff ? $order->staff->name : 'Nespecificat';
+            if (!isset($staffSalesMap[$staffName])) {
+                $staffSalesMap[$staffName] = (object)[
+                    'staff_name' => $staffName,
+                    'orders_count' => 0,
+                    'total_sales' => 0.0,
+                ];
+            }
+            $staffSalesMap[$staffName]->orders_count++;
+            $staffSalesMap[$staffName]->total_sales += floatval($order->total);
+        }
+
+        // Sort staff desc by sales value
+        usort($staffSalesMap, function ($a, $b) {
+            return $b->total_sales <=> $a->total_sales;
+        });
+
+        $settings = CompanySetting::first() ?? new CompanySetting();
+        $currency = $settings->currency ?? 'RON';
+
+        return [
+            'kpis' => [
+                'total_orders' => $totalOrders,
+                'successful_orders' => $successfulOrders,
+                'cancelled_orders' => $cancelledOrders,
+                'total_revenue' => floatval($totalRevenue),
+                'average_value' => floatval($averageValue),
+                'cash_revenue' => $cashRevenue,
+                'card_revenue' => $cardRevenue,
+                'mixed_revenue' => $mixedRevenue,
+                'unpaid_revenue' => $unpaidRevenue,
+            ],
+            'services' => $serviceSales,
+            'staff' => $staffSalesMap,
+            'history' => $history,
+            'range_title' => $this->getRangeTitle($start, $end),
+            'settings' => $settings,
+            'currency' => $currency,
+            'period' => $period,
+            'selectedDate' => $selectedDate,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+        ];
+    }
+
+    /**
+     * Show service report in standalone print view.
+     */
+    public function printServiceReport(Request $request)
+    {
+        try {
+            $data = $this->compileServiceReportData($request);
+            return view('admin.print-service-report', $data);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Eroare la generarea printului: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download service report as PDF.
+     */
+    public function pdfServiceReport(Request $request)
+    {
+        try {
+            $data = $this->compileServiceReportData($request);
+            
+            $pdf = Pdf::loadView('admin.print-service-report', $data);
+            $pdf->setPaper('a4', 'portrait');
+            
+            $filename = 'raport-vulcanizare-' . Str::slug($data['range_title']) . '-' . now()->format('d-m-Y') . '.pdf';
             return $pdf->download($filename);
         } catch (\Exception $e) {
             return back()->with('error', 'Eroare la generarea PDF-ului: ' . $e->getMessage());
