@@ -860,10 +860,10 @@
                                     </div>
                                     <!-- Quick Add Plus Icon (All screens) -->
                                     <div class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10">
-                                        <button @click.stop="selectProductMultiple(prod)" 
-                                                class="w-11 h-11 rounded-2xl bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/25 hover:bg-orange-700 active:scale-90 transition-all duration-200 cursor-pointer border-0">
+                                        <div @click.stop="selectProductMultiple(prod)" 
+                                             class="w-11 h-11 rounded-2xl bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/25 hover:bg-orange-700 active:scale-90 transition-all duration-200 cursor-pointer">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M12 4v16m8-8H4"/></svg>
-                                        </button>
+                                        </div>
                                     </div>
                                 </button>
                             </template>
