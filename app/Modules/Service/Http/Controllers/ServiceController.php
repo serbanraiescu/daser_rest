@@ -126,7 +126,7 @@ class ServiceController extends Controller
     public function completeOrder(Request $request, ServiceOrder $order)
     {
         $request->validate([
-            'payment_method' => 'required|in:cash,card,mixed',
+            'payment_method' => 'required|in:cash,card,mixed,protocol',
             'notes' => 'nullable|string|max:1000'
         ]);
 
@@ -221,6 +221,13 @@ class ServiceController extends Controller
             ->whereBetween('created_at', [$startOfDay, $endOfDay])
             ->sum('total');
 
+        // Protocol revenue today
+        $protocolRevenue = ServiceOrder::where('staff_member_id', $staffId)
+            ->where('status', 'completed')
+            ->where('payment_method', 'protocol')
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->sum('total');
+
         // Services sold today
         $servicesSold = DB::table('service_order_items')
             ->join('service_orders', 'service_order_items.service_order_id', '=', 'service_orders.id')
@@ -245,6 +252,7 @@ class ServiceController extends Controller
             'cash_revenue' => (float)$cashRevenue,
             'card_revenue' => (float)$cardRevenue,
             'mixed_revenue' => (float)$mixedRevenue,
+            'protocol_revenue' => (float)$protocolRevenue,
             'services_sold' => $servicesSold
         ];
     }

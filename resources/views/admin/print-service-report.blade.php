@@ -249,7 +249,8 @@
                 $cashCount = $history->where('status', 'completed')->where('payment_method', 'cash')->count();
                 $cardCount = $history->where('status', 'completed')->where('payment_method', 'card')->count();
                 $mixedCount = $history->where('status', 'completed')->where('payment_method', 'mixed')->count();
-                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount);
+                $protocolCount = $history->where('status', 'completed')->where('payment_method', 'protocol')->count();
+                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount);
             @endphp
             <tr>
                 <td class="bold">Încasări CASH</td>
@@ -265,6 +266,11 @@
                 <td class="bold">Încasări MIXTE</td>
                 <td class="text-center font-bold">{{ $mixedCount }}</td>
                 <td class="text-right font-bold text-success">{{ number_format($kpis['mixed_revenue'], 2) }} {{ $currency }}</td>
+            </tr>
+            <tr>
+                <td class="bold">Încasări PROTOCOL</td>
+                <td class="text-center font-bold">{{ $protocolCount }}</td>
+                <td class="text-right font-bold text-success">{{ number_format($kpis['protocol_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr>
                 <td class="bold">Alte încasări / Nespecificate</td>
@@ -360,7 +366,7 @@
                     <td class="bold">#{{ $order->id }}</td>
                     <td class="text-center font-bold">{{ $order->vehicle_number ?? '-' }}</td>
                     <td class="text-center uppercase" style="font-size: 9px; font-weight: bold; color: #475569;">
-                        {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : 'Nespecificată')) }}
+                        {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : ($order->payment_method === 'protocol' ? 'Protocol' : 'Nespecificată'))) }}
                     </td>
                     <td class="text-center text-muted" style="font-size: 10px;">{{ $order->created_at->format('d.m.Y H:i') }}</td>
                     <td class="text-right bold">{{ number_format($order->total, 2) }} {{ $currency }}</td>

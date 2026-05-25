@@ -219,6 +219,7 @@ class AdminReportController extends Controller
         $cashRevenue = 0.0;
         $cardRevenue = 0.0;
         $mixedRevenue = 0.0;
+        $protocolRevenue = 0.0;
         $unpaidRevenue = 0.0;
 
         foreach ($history as $order) {
@@ -233,6 +234,8 @@ class AdminReportController extends Controller
                 $cardRevenue += floatval($order->total);
             } elseif ($order->payment_method === 'mixed') {
                 $mixedRevenue += floatval($order->total);
+            } elseif ($order->payment_method === 'protocol') {
+                $protocolRevenue += floatval($order->total);
             } else {
                 $unpaidRevenue += floatval($order->total);
             }
@@ -268,6 +271,7 @@ class AdminReportController extends Controller
                 'cash_revenue' => $cashRevenue,
                 'card_revenue' => $cardRevenue,
                 'mixed_revenue' => $mixedRevenue,
+                'protocol_revenue' => $protocolRevenue,
                 'unpaid_revenue' => $unpaidRevenue,
             ],
             'services' => $serviceSales,

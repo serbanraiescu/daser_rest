@@ -109,6 +109,7 @@ class ServiceOrderResource extends Resource
                             'cash' => 'Cash / Numerar',
                             'card' => 'Card',
                             'mixed' => 'Mixtă',
+                            'protocol' => 'Încasare Protocol / Protocol',
                         ])
                         ->nullable(),
                 ]),

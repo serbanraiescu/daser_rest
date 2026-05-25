@@ -488,27 +488,34 @@
             <!-- Big Cash/Card selector -->
             <div class="space-y-3">
                 <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Metodă Plată</label>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button 
                         @click="paymentMethod = 'cash'"
-                        class="p-4 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
                         :class="paymentMethod === 'cash' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
                     >
                         💰 Cash
                     </button>
                     <button 
                         @click="paymentMethod = 'card'"
-                        class="p-4 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
                         :class="paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
                     >
-                        💳 Card / POS
+                        💳 Card
                     </button>
                     <button 
                         @click="paymentMethod = 'mixed'"
-                        class="p-4 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
                         :class="paymentMethod === 'mixed' ? 'bg-amber-500/10 border-amber-500 text-amber-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
                     >
                         🔀 Mixtă
+                    </button>
+                    <button 
+                        @click="paymentMethod = 'protocol'"
+                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+                        :class="paymentMethod === 'protocol' ? 'bg-purple-500/10 border-purple-500 text-purple-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
+                    >
+                        ⚖️ Protocol
                     </button>
                 </div>
             </div>

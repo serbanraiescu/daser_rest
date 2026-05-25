@@ -201,8 +201,8 @@
             </div>
         </div>
 
-        <!-- 3. Tables Row: Top Services & Staff reports -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 print-grid-two">
+        <!-- 3. Tables Row: Top Services, Staff reports & Payment breakdown -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 print-grid-three">
             <!-- Top Services Table -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -246,7 +246,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    Performanță pe Operatori (Mecanici / Vulcanizatori)
+                    Performanță pe Operatori
                 </h3>
 
                 <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
@@ -254,8 +254,8 @@
                         <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
                             <tr>
                                 <th class="px-6 py-3">Operator</th>
-                                <th class="px-6 py-3 text-center">Fișe Finalizate</th>
-                                <th class="px-6 py-3 text-right">Vânzări Totale</th>
+                                <th class="px-6 py-3 text-center">Fișe</th>
+                                <th class="px-6 py-3 text-right">Vânzări</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -274,6 +274,62 @@
                                     </td>
                                 </tr>
                             @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment Methods Breakdown Table -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    Distribuție Metode de Plată
+                </h3>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
+                    <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                        <thead class="bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 uppercase tracking-wider font-bold">
+                            <tr>
+                                <th class="px-6 py-3">Metodă Plată</th>
+                                <th class="px-6 py-3 text-center">Fișe</th>
+                                <th class="px-6 py-3 text-right">Total Încăsări</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                            @php
+                                $cashCount = $history->where('status', 'completed')->where('payment_method', 'cash')->count();
+                                $cardCount = $history->where('status', 'completed')->where('payment_method', 'card')->count();
+                                $mixedCount = $history->where('status', 'completed')->where('payment_method', 'mixed')->count();
+                                $protocolCount = $history->where('status', 'completed')->where('payment_method', 'protocol')->count();
+                                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount);
+                            @endphp
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">CASH</td>
+                                <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $cashCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['cash_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">CARD</td>
+                                <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $cardCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['card_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">MIXTE</td>
+                                <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $mixedCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['mixed_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">PROTOCOL</td>
+                                <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $protocolCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['protocol_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">ALTELE / NESPECIFICATE</td>
+                                <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $unpaidCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['unpaid_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -317,7 +373,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-3 uppercase text-xs font-bold text-gray-600 dark:text-gray-400">
-                                    {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : 'Nespecificată')) }}
+                                    {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : ($order->payment_method === 'protocol' ? 'Protocol' : 'Nespecificată'))) }}
                                 </td>
                                 <td class="px-6 py-3 text-xs">{{ $order->created_at->format('d.m.Y H:i') }}</td>
                                 <td class="px-6 py-3 text-right font-bold text-gray-900 dark:text-white">{{ number_format($order->total, 2) }} {{ $currency }}</td>
@@ -502,6 +558,12 @@
     .print-grid-two {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 1rem !important;
+    }
+    
+    .print-grid-three {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         gap: 1rem !important;
     }
 

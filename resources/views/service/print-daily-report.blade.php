@@ -148,6 +148,10 @@
             <td>Încasări MIXTE:</td>
             <td class="text-right bold">{{ number_format($report['mixed_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
         </tr>
+        <tr>
+            <td>Încasări PROTOCOL:</td>
+            <td class="text-right bold">{{ number_format($report['protocol_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
+        </tr>
     </table>
 
     <div class="border-b"></div>
