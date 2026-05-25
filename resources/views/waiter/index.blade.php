@@ -22,6 +22,10 @@
     selectedProduct: null,
     showMobileCart: false,
     searchQuery: '',
+    showQuantityModal: false,
+    quantityProduct: null,
+    quantityVariation: null,
+    quantityVal: 1,
 
     // Daily Report State
     showReportModal: false,
@@ -151,29 +155,48 @@
             this.selectedProduct = product;
             this.showVariations = true;
         } else {
-            this.addToCart(product);
+            this.openQuantityModal(product);
         }
     },
 
     addToCart(product, variation = null) {
+        this.openQuantityModal(product, variation);
+    },
+
+    openQuantityModal(product, variation = null) {
+        this.quantityProduct = product;
+        this.quantityVariation = variation;
+        this.quantityVal = 1;
+        this.showQuantityModal = true;
+    },
+
+    confirmQuantity() {
+        if (!this.quantityProduct) return;
+        const product = this.quantityProduct;
+        const variation = this.quantityVariation;
+        const quantity = parseInt(this.quantityVal) || 1;
+        
         const cartKey = variation ? `${product.id}-${variation.id}` : product.id;
         const existing = this.cart.find(item => item.cartKey === cartKey);
         
         if (existing) {
-            existing.quantity++;
+            existing.quantity += quantity;
         } else {
             this.cart.push({
                 cartKey: cartKey,
                 id: product.id,
                 name: variation ? `${product.name} (${variation.name})` : product.name,
                 price: variation ? parseFloat(product.price) + parseFloat(variation.price) : parseFloat(product.price),
-                quantity: 1,
+                quantity: quantity,
                 variation_id: variation ? variation.id : null,
                 notes: ''
             });
         }
+        this.showQuantityModal = false;
         this.showVariations = false;
-        this.selectedProduct = null;
+        this.quantityProduct = null;
+        this.quantityVariation = null;
+        this.quantityVal = 1;
     },
 
     async sendOrder() {
@@ -998,6 +1021,75 @@
             <button @click="showVariations = false" class="mt-8 w-full py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors text-[10px] uppercase tracking-widest">
                 Anulează
             </button>
+        </div>
+    </div>
+
+    <!-- Quantity Selector Modal (Inside SPA) -->
+    <div x-show="showQuantityModal" 
+         class="fixed inset-0 z-[65] flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-cloak>
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showQuantityModal = false"></div>
+        
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col p-8 animate-fade-in">
+            <!-- Modal Header -->
+            <div class="text-center mb-6">
+                <span class="inline-block p-3 rounded-2xl bg-orange-50 text-orange-600 mb-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </span>
+                <h3 class="text-xl font-black text-gray-900 leading-tight" x-text="quantityProduct?.name"></h3>
+                <template x-if="quantityVariation">
+                    <p class="text-[10px] text-orange-600 font-bold uppercase tracking-widest mt-1" x-text="'Opțiune: ' + quantityVariation.name"></p>
+                </template>
+                <template x-if="!quantityVariation">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Alege cantitatea produsului</p>
+                </template>
+            </div>
+
+            <!-- Big Interactive Quantity Selector -->
+            <div class="flex items-center justify-between bg-gray-50 rounded-[2rem] p-3 mb-6">
+                <button @click="if (quantityVal > 1) quantityVal--" 
+                        class="w-16 h-16 rounded-2xl bg-white hover:bg-orange-50 text-gray-800 hover:text-orange-600 border border-gray-100 flex items-center justify-center font-black text-2xl shadow-sm active:scale-95 transition-all select-none cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"/></svg>
+                </button>
+                <div class="text-center flex-grow">
+                    <span class="text-4xl font-black text-gray-900 tracking-tight" x-text="quantityVal"></span>
+                    <span class="text-[10px] font-bold text-gray-400 block uppercase mt-0.5">bucăți</span>
+                </div>
+                <button @click="quantityVal++" 
+                        class="w-16 h-16 rounded-2xl bg-white hover:bg-orange-50 text-gray-800 hover:text-orange-600 border border-gray-100 flex items-center justify-center font-black text-2xl shadow-sm active:scale-95 transition-all select-none cursor-pointer">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
+                </button>
+            </div>
+
+            <!-- Quick Quantity Badges/Pills for Fast Selection -->
+            <div class="grid grid-cols-5 gap-2 mb-8">
+                <template x-for="q in [1, 2, 3, 5, 10]">
+                    <button @click="quantityVal = q"
+                            class="py-2.5 rounded-xl border-2 text-xs font-black transition-all cursor-pointer text-center"
+                            :class="quantityVal === q 
+                                ? 'bg-orange-600 border-orange-600 text-white shadow-md shadow-orange-600/10 scale-105' 
+                                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200' "
+                            x-text="q">
+                    </button>
+                </template>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2">
+                <button @click="confirmQuantity()" 
+                        class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4.5 rounded-[1.5rem] font-black shadow-lg shadow-orange-600/20 active:scale-98 transition-all text-xs uppercase tracking-widest text-center cursor-pointer">
+                    Confirmă & Adaugă
+                </button>
+                <button @click="showQuantityModal = false" 
+                        class="w-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 py-3.5 rounded-[1.5rem] font-bold active:scale-98 transition-all text-[10px] uppercase tracking-widest text-center cursor-pointer">
+                    Renunță
+                </button>
+            </div>
         </div>
     </div>
 
