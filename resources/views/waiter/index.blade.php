@@ -26,6 +26,7 @@
     quantityProduct: null,
     quantityVariation: null,
     quantityVal: 1,
+    isMultipleQuantityFlow: false,
 
     // Daily Report State
     showReportModal: false,
@@ -151,6 +152,17 @@
     },
 
     selectProduct(product) {
+        this.isMultipleQuantityFlow = false;
+        if (product.variations && product.variations.length > 0) {
+            this.selectedProduct = product;
+            this.showVariations = true;
+        } else {
+            this.addToCartDirect(product);
+        }
+    },
+
+    selectProductMultiple(product) {
+        this.isMultipleQuantityFlow = true;
         if (product.variations && product.variations.length > 0) {
             this.selectedProduct = product;
             this.showVariations = true;
@@ -160,7 +172,32 @@
     },
 
     addToCart(product, variation = null) {
-        this.openQuantityModal(product, variation);
+        if (this.isMultipleQuantityFlow) {
+            this.openQuantityModal(product, variation);
+        } else {
+            this.addToCartDirect(product, variation);
+        }
+    },
+
+    addToCartDirect(product, variation = null) {
+        const cartKey = variation ? `${product.id}-${variation.id}` : product.id;
+        const existing = this.cart.find(item => item.cartKey === cartKey);
+        
+        if (existing) {
+            existing.quantity++;
+        } else {
+            this.cart.push({
+                cartKey: cartKey,
+                id: product.id,
+                name: variation ? `${product.name} (${variation.name})` : product.name,
+                price: variation ? parseFloat(product.price) + parseFloat(variation.price) : parseFloat(product.price),
+                quantity: 1,
+                variation_id: variation ? variation.id : null,
+                notes: ''
+            });
+        }
+        this.showVariations = false;
+        this.selectedProduct = null;
     },
 
     openQuantityModal(product, variation = null) {
@@ -817,15 +854,16 @@
                                             <img :src="'/storage/' + prod.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                         </div>
                                     </template>
-                                    <div class="flex-grow min-w-0 pr-12">
+                                    <div class="flex-grow min-w-0 pr-16">
                                         <h3 class="font-black text-gray-900 text-xs md:text-sm leading-tight mb-1 truncate" x-text="prod.name"></h3>
                                         <p class="text-orange-600 font-black text-xs md:text-sm" x-text="parseFloat(prod.price).toFixed(2) + ' RON'"></p>
                                     </div>
                                     <!-- Quick Add Plus Icon (All screens) -->
-                                    <div class="absolute right-3">
-                                        <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-600/10 group-hover:scale-105 active:scale-90 transition-all duration-200">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
-                                        </div>
+                                    <div class="absolute right-2.5 top-1/2 -translate-y-1/2 z-10">
+                                        <button @click.stop="selectProductMultiple(prod)" 
+                                                class="w-11 h-11 rounded-2xl bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/25 hover:bg-orange-700 active:scale-90 transition-all duration-200 cursor-pointer border-0">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M12 4v16m8-8H4"/></svg>
+                                        </button>
                                     </div>
                                 </button>
                             </template>
@@ -1082,7 +1120,8 @@
             <!-- Action Buttons -->
             <div class="space-y-2">
                 <button @click="confirmQuantity()" 
-                        class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4.5 rounded-[1.5rem] font-black shadow-lg shadow-orange-600/20 active:scale-98 transition-all text-xs uppercase tracking-widest text-center cursor-pointer">
+                        class="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-[1.5rem] font-black shadow-lg shadow-orange-600/20 active:scale-98 transition-all text-xs uppercase tracking-widest text-center cursor-pointer"
+                        style="padding-top: 1.35rem; padding-bottom: 1.35rem;">
                     Confirmă & Adaugă
                 </button>
                 <button @click="showQuantityModal = false" 
