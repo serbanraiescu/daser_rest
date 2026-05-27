@@ -143,11 +143,10 @@ class WaiterController extends Controller
             }
 
             foreach ($orderItems as $item) {
-                // Check if there is an existing pending item for the same product and variation in this order
+                // Check if there is an existing item for the same product and variation in this order (regardless of status)
                 $existingItem = $order->items()
                     ->where('product_id', $item['product_id'])
                     ->where('variation_id', $item['variation_id'])
-                    ->where('status', 'pending')
                     ->where(function($query) use ($item) {
                         if (empty($item['notes'])) {
                             $query->whereNull('notes')->orWhere('notes', '');
@@ -158,8 +157,9 @@ class WaiterController extends Controller
                     ->first();
 
                 if ($existingItem) {
-                    // Update quantity
+                    // Update quantity and reset status to pending so it triggers KDS again
                     $existingItem->quantity += $item['quantity'];
+                    $existingItem->status = 'pending';
                     $existingItem->save();
                 } else {
                     $order->items()->create($item);
