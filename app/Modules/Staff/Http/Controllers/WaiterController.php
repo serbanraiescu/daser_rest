@@ -143,7 +143,27 @@ class WaiterController extends Controller
             }
 
             foreach ($orderItems as $item) {
-                $order->items()->create($item);
+                // Check if there is an existing pending item for the same product and variation in this order
+                $existingItem = $order->items()
+                    ->where('product_id', $item['product_id'])
+                    ->where('variation_id', $item['variation_id'])
+                    ->where('status', 'pending')
+                    ->where(function($query) use ($item) {
+                        if (empty($item['notes'])) {
+                            $query->whereNull('notes')->orWhere('notes', '');
+                        } else {
+                            $query->where('notes', $item['notes']);
+                        }
+                    })
+                    ->first();
+
+                if ($existingItem) {
+                    // Update quantity
+                    $existingItem->quantity += $item['quantity'];
+                    $existingItem->save();
+                } else {
+                    $order->items()->create($item);
+                }
             }
 
             DB::commit();
