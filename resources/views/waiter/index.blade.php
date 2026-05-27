@@ -1170,7 +1170,7 @@
          x-cloak>
         <div class="fixed inset-0 bg-gray-900/80 backdrop-blur-md print:hidden" @click="showReportModal = false"></div>
         
-        <div class="bg-white w-full max-w-2xl h-[85vh] md:h-auto rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col print:h-auto print:shadow-none print:rounded-none print:w-full print:overflow-visible">
+        <div class="bg-white w-full max-w-2xl h-[85vh] rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col print:h-auto print:shadow-none print:rounded-none print:w-full print:overflow-visible">
             <!-- Header -->
             <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10 print:hidden">
                 <div class="flex items-center gap-4">
