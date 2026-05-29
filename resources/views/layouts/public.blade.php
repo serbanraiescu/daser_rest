@@ -26,16 +26,15 @@
 </head>
 <body class="antialiased flex flex-col min-h-screen">
     <x-cookie-consent :settings="$settings" />
-    <!-- Navbar -->
     <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
                 <div class="flex-shrink-0 flex items-center">
                     <a href="{{ route('home') }}">
                         @if($settings?->company_logo)
-                            <img class="h-12 w-auto" src="{{ asset('storage/' . $settings->company_logo) }}" alt="Logo">
+                            <img class="h-8 sm:h-10 md:h-12 w-auto max-w-[45vw] sm:max-w-[200px] md:max-w-none object-contain transition-all duration-300" src="{{ asset('storage/' . $settings->company_logo) }}" alt="Logo">
                         @else
-                            <span class="text-2xl font-bold text-orange-600">{{ $settings->site_name ?? 'Restaurant' }}</span>
+                            <span class="text-xl sm:text-2xl font-bold text-orange-600 transition-all">{{ $settings->site_name ?? 'Restaurant' }}</span>
                         @endif
                     </a>
                 </div>
@@ -47,7 +46,7 @@
                 </div>
                 @if(!($settings->hide_ordering_button ?? false))
                 <div>
-                     <a href="{{ route('menu.index') }}" class="bg-primary hover:opacity-90 text-white px-6 py-2 rounded-full font-semibold transition-all shadow-lg shadow-primary/20">
+                     <a href="{{ route('menu.index') }}" class="bg-primary hover:opacity-90 text-white px-3 py-1.5 sm:px-6 sm:py-2 rounded-full text-xs sm:text-sm md:text-base font-semibold transition-all shadow-lg shadow-primary/20 whitespace-nowrap">
                         {{ ($settings->enable_ordering ?? true) ? 'Comandă Online' : 'Vezi Meniul' }}
                     </a>
                 </div>
