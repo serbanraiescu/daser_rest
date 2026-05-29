@@ -114,6 +114,7 @@
             pollInterval: null,
             soundRepeatInterval: null,
             audioElement: null,
+            knownItemIds: new Set(),
 
             startApp() {
                 this.soundEnabled = true; // User gesture allows audio later
@@ -131,11 +132,11 @@
                     }
                 }
 
-                this.fetchOrders();
+                this.fetchOrders(true);
                 
                 // Start Polling
                 if (this.pollInterval) clearInterval(this.pollInterval);
-                this.pollInterval = setInterval(() => this.fetchOrders(), 10000);
+                this.pollInterval = setInterval(() => this.fetchOrders(false), 10000);
 
                 // Start Sound Loop Interval - repeats every 5 seconds if there are pending orders
                 if (this.soundRepeatInterval) clearInterval(this.soundRepeatInterval);
@@ -147,7 +148,7 @@
                 }, 5000);
             },
 
-            async fetchOrders() {
+            async fetchOrders(isFirstLoad = false) {
                 this.isLoading = true;
                 this.connectionError = false;
                 
@@ -160,41 +161,60 @@
                     
                     const newOrders = await response.json();
                     
-                    // Check for NEW orders or ADDED items to play sound immediately
-                    if (this.orders.length > 0 && this.soundEnabled) {
-                        const oldIds = this.orders.map(o => o.id);
+                    // Extract all active kitchen/bar item IDs from new orders
+                    const currentItemIds = [];
+                    newOrders.forEach(o => {
+                        (o.items || []).forEach(item => {
+                            currentItemIds.push(item.id);
+                        });
+                    });
+
+                    let playSound = false;
+                    let newIds = [];
+
+                    if (isFirstLoad) {
+                        // First load: populate knownItemIds, DO NOT play sound
+                        this.knownItemIds = new Set(currentItemIds);
+                        console.log('[KDS Debug] First load. Populated known items:', Array.from(this.knownItemIds));
+                    } else {
+                        // Subsequent polls: check for any new items not in our set
+                        newIds = currentItemIds.filter(id => !this.knownItemIds.has(id));
                         
-                        // 1. Completely new order in pending status
-                        const hasNewOrder = newOrders.some(o => !oldIds.includes(o.id) && o.status === 'pending');
-                        
-                        // 2. Existing order got new items
-                        let hasNewItems = false;
-                        for (const newOrder of newOrders) {
-                            const oldOrder = this.orders.find(o => o.id === newOrder.id);
-                            if (oldOrder) {
-                                const oldItemIds = (oldOrder.items || []).map(item => item.id);
-                                const hasAddedItem = (newOrder.items || []).some(item => !oldItemIds.includes(item.id));
-                                if (hasAddedItem) {
-                                    hasNewItems = true;
-                                    break;
-                                }
-                            }
+                        if (newIds.length > 0 && this.soundEnabled) {
+                            playSound = true;
+                            // Add new items to known list
+                            newIds.forEach(id => this.knownItemIds.add(id));
                         }
-                        
-                        if (hasNewOrder || hasNewItems) {
-                            console.log('New order or added items detected! Playing sound immediately...');
+
+                        // Debug logs as requested
+                        console.log(`[KDS Debug] Poll synced. Active orders: ${newOrders.length}, Kitchen items count: ${currentItemIds.length}`);
+                        console.log('[KDS Debug] Known item IDs:', Array.from(this.knownItemIds));
+                        console.log('[KDS Debug] New item IDs detected:', newIds);
+                        console.log('[KDS Debug] playSound decision:', playSound);
+                        // Log table details for new items for info
+                        newIds.forEach(id => {
+                            const order = newOrders.find(o => (o.items || []).some(item => item.id === id));
+                            if (order) {
+                                console.log(`[KDS Debug] New item details -> ID: ${id}, Table: ${order.table_number}, Order ID: ${order.id}`);
+                            }
+                        });
+
+                        if (playSound) {
+                            console.log('[KDS Debug] Playing alert sound immediately!');
                             this.playSound();
                         }
-                    } else if (newOrders.length > 0 && this.orders.length === 0 && this.soundEnabled) {
-                         // First load has pending orders? Maybe play sound too
-                         if(newOrders.some(o => o.status === 'pending')) {
-                             this.playSound();
-                         }
                     }
+
+                    // Clean up known items that are no longer active
+                    const currentItemIdsSet = new Set(currentItemIds);
+                    this.knownItemIds.forEach(id => {
+                        if (!currentItemIdsSet.has(id)) {
+                            this.knownItemIds.delete(id);
+                        }
+                    });
 
                     this.orders = newOrders;
                     this.lastUpdated = new Date().toLocaleTimeString();
-                    console.log('Orders synced:', this.orders.length);
 
                 } catch (error) {
                     console.error('Fetch error:', error);
