@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 'panels::styles.after',
-                fn (): string => '<link rel="stylesheet" href="' . asset('css/filament-compact-sidebar.css?v=' . filemtime(public_path('css/filament-compact-sidebar.css'))) . '">',
+                fn (): string => '<link rel="stylesheet" href="' . asset('css/filament-compact-sidebar.css?v=' . (file_exists(public_path('css/filament-compact-sidebar.css')) ? filemtime(public_path('css/filament-compact-sidebar.css')) : '1.0.0')) . '">',
             )
             ->login()
             ->colors([
