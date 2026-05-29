@@ -74,8 +74,8 @@
                         {{ __('Opening Hours') }}
                     </h2>
                     <div class="space-y-4">
-                        @if($settings?->opening_hours)
-                            @foreach($settings->opening_hours as $slot)
+                        @if($settings)
+                            @foreach($settings->getFormattedOpeningHours() as $slot)
                                 <div class="flex justify-between items-center border-b border-gray-200 pb-2 last:border-0 last:pb-0">
                                     <span class="font-medium text-gray-700">{{ $slot['day'] }}</span>
                                     <span class="text-gray-500">{{ $slot['hours'] }}</span>
