@@ -251,6 +251,10 @@ class PlatformSettings extends Page implements HasForms
                                             ->label('Activează Modulul de Servicii (Service Module)')
                                             ->helperText('Permite gestionarea categoriilor, serviciilor și a comenzilor speciale independente de restaurant.')
                                             ->default(false),
+                                        Toggle::make('prevent_negative_stock')
+                                            ->label('Previne stoc negativ (Inventar)')
+                                            ->helperText('Dacă este activ, scăderea automată de stoc se oprește la 0 și nu permite valori negative. Un warning va fi logat.')
+                                            ->default(false),
                                     ]),
                                 Section::make('Galerie Evenimente')
                                     ->schema([

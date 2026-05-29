@@ -23,6 +23,7 @@ class CompanySetting extends Model
         'enable_delivery',
         'hide_ordering_button',
         'enable_service_module',
+        'prevent_negative_stock',
         'show_all_products_initially',
         'public_menu_layout',
         'public_menu_hero_style',
@@ -44,7 +45,8 @@ class CompanySetting extends Model
     ];
 
     protected $casts = [
-        'enable_service_module' => 'boolean',
+        'enable_service_module'    => 'boolean',
+        'prevent_negative_stock'   => 'boolean',
         'show_all_products_initially' => 'boolean',
         'social_links' => 'array',
         'opening_hours' => 'array',

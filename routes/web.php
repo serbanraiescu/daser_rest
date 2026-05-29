@@ -73,6 +73,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin/reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfReport'])->name('admin.reports.pdf');
     Route::get('/admin/service-reports/print', [\App\Http\Controllers\AdminReportController::class, 'printServiceReport'])->name('admin.service-reports.print');
     Route::get('/admin/service-reports/pdf', [\App\Http\Controllers\AdminReportController::class, 'pdfServiceReport'])->name('admin.service-reports.pdf');
+
+    // Inventory A4 Print
+    Route::get('/admin/inventory/{snapshot}/print', [\App\Http\Controllers\InventoryPrintController::class, 'show'])->name('inventory.print');
 });
 
 // Service Module (Touch Dashboard, Orders & Reports)

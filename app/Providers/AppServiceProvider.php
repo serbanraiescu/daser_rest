@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Modules\Inventory\Observers\OrderObserver;
+use App\Modules\Orders\Models\Order;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Înregistrare observer pentru scădere automată stoc la status = paid
+        Order::observe(OrderObserver::class);
     }
 }

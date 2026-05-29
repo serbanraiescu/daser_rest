@@ -47,7 +47,9 @@ class Product extends Model
     
     public function ingredients(): BelongsToMany
     {
-        return $this->belongsToMany(Ingredient::class, 'ingredient_product');
+        return $this->belongsToMany(Ingredient::class, 'ingredient_product')
+            ->withPivot('quantity_used')
+            ->withTimestamps();
     }
 
     public function allergenRelations(): BelongsToMany

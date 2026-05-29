@@ -17,10 +17,12 @@ class Order extends Model
         'table_number',
         'notes',
         'staff_id',
+        'stock_deducted_at',
     ];
 
     protected $casts = [
-        'total' => 'decimal:2',
+        'total'              => 'decimal:2',
+        'stock_deducted_at' => 'datetime',
     ];
 
     public function items(): HasMany
@@ -36,5 +38,13 @@ class Order extends Model
     public function waiter()
     {
         return $this->belongsTo(\App\Modules\Staff\Models\StaffMember::class, 'staff_id');
+    }
+
+    /**
+     * Verifică dacă stocul a fost deja dedus pentru această comandă.
+     */
+    public function isStockDeducted(): bool
+    {
+        return $this->stock_deducted_at !== null;
     }
 }

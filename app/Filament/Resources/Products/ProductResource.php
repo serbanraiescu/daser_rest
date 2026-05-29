@@ -196,16 +196,46 @@ class ProductResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        // Tab 2: Ingredients
+                        // Tab 2: Ingredients & Recipe
                         \Filament\Forms\Components\Tabs\Tab::make('Recipe & Ingredients')
                             ->schema([
-                                Select::make('ingredients')
-                                    ->label('Ingrediente')
-                                    ->relationship('ingredients', 'name')
-                                    ->multiple()
-                                    ->searchable()
-                                    ->preload()
-                                    ->columnSpanFull(),
+                                \Filament\Forms\Components\Repeater::make('ingredientsWithQuantity')
+                                    ->label('Rețetă produs (ingrediente + cantitate)')
+                                    ->relationship(
+                                        name: 'ingredients',
+                                        modifyQueryUsing: fn ($query) => $query->withPivot('quantity_used'),
+                                    )
+                                    ->schema([
+                                        Select::make('id')
+                                            ->label('Ingredient')
+                                            ->options(\App\Modules\Menu\Models\Ingredient::where('is_active', true)->pluck('name', 'id'))
+                                            ->searchable()
+                                            ->required()
+                                            ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                            ->columnSpan(2),
+                                        TextInput::make('pivot.quantity_used')
+                                            ->label('Cantitate folosită')
+                                            ->numeric()
+                                            ->step(0.001)
+                                            ->minValue(0.001)
+                                            ->default(1)
+                                            ->required()
+                                            ->helperText('Per o porție din produs')
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(3)
+                                    ->itemLabel(function (array $state): ?string {
+                                        if (empty($state['id'])) {
+                                            return null;
+                                        }
+                                        $ingredient = \App\Modules\Menu\Models\Ingredient::find($state['id']);
+                                        return $ingredient
+                                            ? $ingredient->name . ' × ' . ($state['pivot']['quantity_used'] ?? 1)
+                                            : null;
+                                    })
+                                    ->collapsible()
+                                    ->columnSpanFull()
+                                    ->addActionLabel('Adaugă ingredient'),
                             ]),
 
                         // Tab 3: Nutritional Values & Allergens
