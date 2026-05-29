@@ -33,6 +33,10 @@ class AdminPanelProvider extends PanelProvider
                 'panels::sidebar.footer',
                 fn (): string => view('filament.sidebar-footer')->render(),
             )
+            ->renderHook(
+                'panels::styles.after',
+                fn (): string => '<link rel="stylesheet" href="' . asset('css/filament-compact-sidebar.css?v=' . filemtime(public_path('css/filament-compact-sidebar.css'))) . '">',
+            )
             ->login()
             ->colors([
                 'primary' => Color::Amber,
@@ -60,8 +64,8 @@ class AdminPanelProvider extends PanelProvider
                                         const item = label.closest('li.fi-sidebar-item');
                                         if (item) {
                                             item.style.borderBottom = '1px solid #e5e7eb'; // Gray-200
-                                            item.style.marginBottom = '0.75rem';
-                                            item.style.paddingBottom = '0.75rem';
+                                            item.style.marginBottom = '0.35rem';
+                                            item.style.paddingBottom = '0.35rem';
                                             
                                             // Check for dark mode
                                             if (document.documentElement.classList.contains('dark')) {

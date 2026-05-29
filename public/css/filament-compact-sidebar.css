@@ -1,0 +1,171 @@
+/**
+ * Restaurant OS - Custom Compact & Elegant Sidebar Theme for Filament Admin
+ * Location: public/css/filament-compact-sidebar.css
+ *
+ * This stylesheet overrides Filament's default spacious navigation layout to make it
+ * compact, modern, and easy to scan, especially when utilizing many custom modules.
+ *
+ * Customization Tip:
+ * If you wish to change spacing or sizes, adjust the CSS variables in the :root section below.
+ */
+
+:root {
+    /* Adjust these variables to quickly fine-tune the layout */
+    --sidebar-item-py: 0.3rem;            /* Spacing above/below item text */
+    --sidebar-item-px: 0.6rem;            /* Spacing left/right inside items */
+    --sidebar-item-gap: 0.1rem;           /* Spacing between list items (margin) */
+    --sidebar-item-font-size: 0.825rem;   /* Font size of menu items (~13px) */
+    --sidebar-group-gap: 0.4rem;          /* Spacing between navigation groups */
+    --sidebar-group-header-py: 0.2rem;    /* Spacing inside group header text */
+    --sidebar-icon-size: 1.1rem;          /* Icon dimensions (width and height) */
+}
+
+/* 1. COMPACT SIDEBAR NAVIGATION GROUPS */
+.fi-sidebar-group {
+    margin-top: var(--sidebar-group-gap) !important;
+    margin-bottom: var(--sidebar-group-gap) !important;
+}
+
+.fi-sidebar-group-header {
+    padding-top: var(--sidebar-group-header-py) !important;
+    padding-bottom: var(--sidebar-group-header-py) !important;
+    margin-bottom: 0.1rem !important;
+}
+
+/* 2. COMPACT SIDEBAR MENU ITEMS */
+.fi-sidebar-item {
+    margin-top: var(--sidebar-item-gap) !important;
+    margin-bottom: var(--sidebar-item-gap) !important;
+}
+
+/* Clickable button/link in sidebar */
+.fi-sidebar-item-button,
+.fi-sidebar-item a {
+    padding-top: var(--sidebar-item-py) !important;
+    padding-bottom: var(--sidebar-item-py) !important;
+    padding-left: var(--sidebar-item-px) !important;
+    padding-right: var(--sidebar-item-px) !important;
+    border-radius: 0.375rem !important; /* Sleek 6px border radius */
+    min-height: auto !important; /* Reset default height limits */
+    transition: all 0.15s ease-in-out !important;
+}
+
+/* Text label in sidebar items */
+.fi-sidebar-item-label,
+.fi-sidebar-item-button span,
+.fi-sidebar-item a span {
+    font-size: var(--sidebar-item-font-size) !important;
+    font-weight: 500 !important;
+    line-height: 1.2rem !important;
+}
+
+/* 3. SCALED DOWN NAVIGATION ICONS */
+.fi-sidebar-item-icon,
+.fi-sidebar-item-button svg,
+.fi-sidebar-item a svg {
+    width: var(--sidebar-icon-size) !important;
+    height: var(--sidebar-icon-size) !important;
+    margin-right: 0.15rem !important;
+}
+
+/* 4. FLUID INTERNAL SCROLLBAR FOR SIDEBAR */
+.fi-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+}
+
+.fi-sidebar-nav {
+    flex-grow: 1 !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important; /* Firefox support */
+    scrollbar-color: rgba(156, 163, 175, 0.15) transparent !important; /* Firefox support */
+    scrollbar-gutter: auto !important; /* Prevent layout jumping */
+    padding-bottom: 2rem !important;
+}
+
+/* Customize sleek webkit scrollbar */
+.fi-sidebar-nav::-webkit-scrollbar {
+    width: 4px !important;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.18) !important;
+    border-radius: 10px !important;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.35) !important;
+}
+
+/* 5. SUPER COMPACT POWERED BY FOOTER */
+.fi-sidebar-footer,
+div[render-hook="panels::sidebar.footer"] > div,
+.fi-sidebar > div > div:last-child {
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    border-top: 1px solid rgba(229, 231, 235, 0.7) !important;
+}
+
+.dark .fi-sidebar-footer,
+.dark div[render-hook="panels::sidebar.footer"] > div,
+.dark .fi-sidebar > div > div:last-child {
+    border-top-color: rgba(55, 65, 81, 0.6) !important;
+}
+
+div[render-hook="panels::sidebar.footer"] span {
+    font-size: 8px !important;
+    letter-spacing: 0.05em !important;
+}
+
+div[render-hook="panels::sidebar.footer"] img {
+    height: 16px !important; /* Slightly smaller Powered By logo */
+    width: auto !important;
+}
+
+/* 6. CLEAR ELEGANT ACTIVE HIGHLIGHTING (Supports Accent Variable) */
+.fi-sidebar-item-active,
+.fi-active {
+    position: relative !important;
+}
+
+/* Active background & text colors */
+.fi-sidebar-item-active .fi-sidebar-item-button,
+.fi-active a {
+    background-color: rgba(245, 158, 11, 0.08) !important; /* Very subtle light amber */
+    color: rgb(217, 119, 6) !important;                      /* Accent amber text */
+    font-weight: 700 !important;
+}
+
+/* Active styling for dark mode */
+.dark .fi-sidebar-item-active .fi-sidebar-item-button,
+.dark .fi-active a {
+    background-color: rgba(245, 158, 11, 0.04) !important; /* Dark amber tint */
+    color: rgb(251, 191, 36) !important;                      /* Bright amber text */
+}
+
+/* Add a elegant vertical border strip to active item */
+.fi-sidebar-item-active::before,
+.fi-active::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 15% !important;
+    height: 70% !important;
+    width: 3px !important;
+    background-color: rgb(217, 119, 6) !important;
+    border-radius: 0 4px 4px 0 !important;
+}
+
+.dark .fi-sidebar-item-active::before,
+.dark .fi-active::before {
+    background-color: rgb(251, 191, 36) !important;
+}
