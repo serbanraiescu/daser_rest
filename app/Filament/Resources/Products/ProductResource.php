@@ -218,6 +218,7 @@ class ProductResource extends Resource
                                             ->minValue(0.001)
                                             ->default(1)
                                             ->required()
+                                            ->live(onBlur: true)
                                             ->suffix(function ($get) {
                                                 $ingredientId = $get('id');
                                                 if ($ingredientId) {
@@ -238,7 +239,7 @@ class ProductResource extends Resource
                                         if (!$ingredient) {
                                             return null;
                                         }
-                                        $qty = $state['pivot']['quantity_used'] ?? 1;
+                                        $qty = $state['pivot']['quantity_used'] ?? $state['quantity_used'] ?? 1;
                                         $unit = $ingredient->unit ?? '';
                                         return "{$ingredient->name} × {$qty} {$unit}";
                                     })
