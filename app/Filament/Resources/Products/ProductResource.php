@@ -203,7 +203,6 @@ class ProductResource extends Resource
                                     ->label('Rețetă produs (ingrediente + cantitate)')
                                     ->relationship(
                                         name: 'ingredients',
-                                        modifyQueryUsing: fn ($query) => $query->withPivot('quantity_used'),
                                     )
                                     ->schema([
                                         Select::make('id')
