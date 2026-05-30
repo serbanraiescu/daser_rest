@@ -199,11 +199,9 @@ class ProductResource extends Resource
                         // Tab 2: Ingredients & Recipe
                         \Filament\Forms\Components\Tabs\Tab::make('Recipe & Ingredients')
                             ->schema([
-                                \Filament\Forms\Components\Repeater::make('ingredientsWithQuantity')
+                                \Filament\Forms\Components\Repeater::make('ingredients')
                                     ->label('Rețetă produs (ingrediente + cantitate)')
-                                    ->relationship(
-                                        name: 'ingredients',
-                                    )
+                                    ->relationship()
                                     ->schema([
                                         Select::make('id')
                                             ->label('Ingredient')
