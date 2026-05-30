@@ -211,7 +211,7 @@ class ProductResource extends Resource
                                             ->disableOptionsWhenSelectedInSiblingRepeaterItems()
                                             ->live()
                                             ->columnSpan(2),
-                                        TextInput::make('pivot.quantity_used')
+                                        TextInput::make('quantity_used')
                                             ->label('Cantitate folosită')
                                             ->numeric()
                                             ->step(0.001)
@@ -239,7 +239,7 @@ class ProductResource extends Resource
                                         if (!$ingredient) {
                                             return null;
                                         }
-                                        $qty = $state['pivot']['quantity_used'] ?? $state['quantity_used'] ?? 1;
+                                        $qty = $state['quantity_used'] ?? 1;
                                         $unit = $ingredient->unit ?? '';
                                         return "{$ingredient->name} × {$qty} {$unit}";
                                     })
