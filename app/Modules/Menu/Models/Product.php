@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Modules\Menu\Models\Ingredient;
 use App\Modules\Menu\Models\Allergen;
+use App\Modules\Menu\Models\ProductIngredient;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -48,8 +49,14 @@ class Product extends Model
     public function ingredients(): BelongsToMany
     {
         return $this->belongsToMany(Ingredient::class, 'ingredient_product')
+            ->using(ProductIngredient::class)
             ->withPivot('quantity_used')
             ->withTimestamps();
+    }
+
+    public function productIngredients(): HasMany
+    {
+        return $this->hasMany(ProductIngredient::class, 'product_id');
     }
 
     public function allergenRelations(): BelongsToMany

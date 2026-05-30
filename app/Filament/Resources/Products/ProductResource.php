@@ -199,11 +199,11 @@ class ProductResource extends Resource
                         // Tab 2: Ingredients & Recipe
                         \Filament\Forms\Components\Tabs\Tab::make('Recipe & Ingredients')
                             ->schema([
-                                \Filament\Forms\Components\Repeater::make('ingredients')
+                                \Filament\Forms\Components\Repeater::make('productIngredients')
                                     ->label('Rețetă produs (ingrediente + cantitate)')
                                     ->relationship()
                                     ->schema([
-                                        Select::make('id')
+                                        Select::make('ingredient_id')
                                             ->label('Ingredient')
                                             ->options(\App\Modules\Menu\Models\Ingredient::where('is_active', true)->pluck('name', 'id'))
                                             ->searchable()
@@ -220,7 +220,7 @@ class ProductResource extends Resource
                                             ->required()
                                             ->live(onBlur: true)
                                             ->suffix(function ($get) {
-                                                $ingredientId = $get('id');
+                                                $ingredientId = $get('ingredient_id');
                                                 if ($ingredientId) {
                                                     $ingredient = \App\Modules\Menu\Models\Ingredient::find($ingredientId);
                                                     return $ingredient?->unit ?? '';
@@ -232,10 +232,10 @@ class ProductResource extends Resource
                                     ])
                                     ->columns(3)
                                     ->itemLabel(function (array $state): ?string {
-                                        if (empty($state['id'])) {
+                                        if (empty($state['ingredient_id'])) {
                                             return null;
                                         }
-                                        $ingredient = \App\Modules\Menu\Models\Ingredient::find($state['id']);
+                                        $ingredient = \App\Modules\Menu\Models\Ingredient::find($state['ingredient_id']);
                                         if (!$ingredient) {
                                             return null;
                                         }
