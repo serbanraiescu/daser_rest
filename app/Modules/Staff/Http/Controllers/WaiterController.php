@@ -323,6 +323,9 @@ class WaiterController extends Controller
                 $newOrder->items()->create($item);
             }
 
+            // Deduct stock for the new split paid order
+            resolve(\App\Modules\Inventory\Services\StockDeductionService::class)->deductForOrder($newOrder);
+
             if ($request->is_fiscal && $request->fiscal_data) {
                 \App\Modules\Orders\Models\OrderFiscalDetail::create(array_merge(
                     ['order_id' => $newOrder->id],
