@@ -209,6 +209,7 @@ class ProductResource extends Resource
                                             ->searchable()
                                             ->required()
                                             ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                            ->live()
                                             ->columnSpan(2),
                                         TextInput::make('pivot.quantity_used')
                                             ->label('Cantitate folosită')
@@ -217,6 +218,14 @@ class ProductResource extends Resource
                                             ->minValue(0.001)
                                             ->default(1)
                                             ->required()
+                                            ->suffixLabel(function ($get) {
+                                                $ingredientId = $get('id');
+                                                if ($ingredientId) {
+                                                    $ingredient = \App\Modules\Menu\Models\Ingredient::find($ingredientId);
+                                                    return $ingredient?->unit ?? '';
+                                                }
+                                                return '';
+                                            })
                                             ->helperText('Per o porție din produs')
                                             ->columnSpan(1),
                                     ])
@@ -226,9 +235,12 @@ class ProductResource extends Resource
                                             return null;
                                         }
                                         $ingredient = \App\Modules\Menu\Models\Ingredient::find($state['id']);
-                                        return $ingredient
-                                            ? $ingredient->name . ' × ' . ($state['pivot']['quantity_used'] ?? 1)
-                                            : null;
+                                        if (!$ingredient) {
+                                            return null;
+                                        }
+                                        $qty = $state['pivot']['quantity_used'] ?? 1;
+                                        $unit = $ingredient->unit ?? '';
+                                        return "{$ingredient->name} × {$qty} {$unit}";
                                     })
                                     ->collapsible()
                                     ->columnSpanFull()
