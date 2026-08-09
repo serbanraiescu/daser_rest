@@ -23,6 +23,11 @@ class AllergenResource extends Resource
     protected static ?string $navigationGroup = 'Menu';
     protected static ?int $navigationSort = 4;
 
+    public static function canAccess(): bool
+    {
+        return \App\Modules\Settings\Models\CompanySetting::first()?->enable_allergens ?? true;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

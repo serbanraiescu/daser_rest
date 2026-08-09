@@ -7,7 +7,7 @@
                 <div class="flex-grow min-w-0">
                     <div class="flex justify-between items-start gap-4 mb-1">
                         <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
-                            {{ $product->name }}
+                            {{ $product->display_name }}
                             @if($product->is_frozen)
                                 <span class="ml-1 inline-block text-blue-400" title="Produs congelat">
                                     <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -26,7 +26,7 @@
                     @endif
 
                     <p class="text-gray-500 text-xs mb-2 line-clamp-2 leading-relaxed">
-                        {{ $product->description }}
+                        {{ $product->display_description }}
                     </p>
 
                     <!-- Ingredients Summary -->
@@ -38,7 +38,7 @@
                             </span>
                         @endif
 
-                        @if($product->allergenRelations->isNotEmpty())
+                        @if(($settings->enable_allergens ?? true) && $product->allergenRelations->isNotEmpty())
                             <div class="flex gap-1 ml-1">
                                 @foreach($product->allergenRelations as $allergen)
                                     <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[9px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>

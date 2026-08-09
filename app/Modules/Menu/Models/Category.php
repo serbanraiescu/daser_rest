@@ -10,6 +10,7 @@ class Category extends Model
     protected $table = 'categories';
 
     protected $fillable = [
+        'menu_id',
         'name',
         'image',
         'is_active',

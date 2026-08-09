@@ -24,8 +24,8 @@
             <div class="p-5 flex-grow flex flex-col justify-between">
                 <div>
                     <div class="flex justify-between items-start gap-2 mb-1">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1" title="{{ $product->name }}">
-                            {{ $product->name }}
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1" title="{{ $product->display_name }}">
+                            {{ $product->display_name }}
                         </h3>
                         <div class="text-base sm:text-lg font-black text-gray-900 whitespace-nowrap">
                             {{ number_format($product->price, 2) }} <span class="text-xs font-normal text-gray-400">{{ $settings->currency ?? 'RON' }}</span>
@@ -39,7 +39,7 @@
                     @endif
 
                     <p class="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed">
-                        {{ $product->description }}
+                        {{ $product->display_description }}
                     </p>
 
                     <!-- Ingredients Summary -->
@@ -51,7 +51,7 @@
                             </span>
                         @endif
 
-                        @if($product->allergenRelations->isNotEmpty())
+                        @if(($settings->enable_allergens ?? true) && $product->allergenRelations->isNotEmpty())
                             <div class="flex gap-1 ml-1">
                                 @foreach($product->allergenRelations as $allergen)
                                     <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[9px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>

@@ -17,8 +17,10 @@ class Product extends Model
     protected $fillable = [
         'category_id',
         'name',
+        'name_en',
         'price',
         'description',
+        'description_en',
         'image',
         'is_active',
         'is_available',
@@ -40,6 +42,18 @@ class Product extends Model
         'is_frozen' => 'boolean',
         'nutritional_data' => 'array',
     ];
+
+    protected $appends = ['display_name', 'display_description'];
+
+    public function getDisplayNameAttribute(): string
+    {
+        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+    }
+
+    public function getDisplayDescriptionAttribute(): ?string
+    {
+        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+    }
 
     public function category(): BelongsTo
     {

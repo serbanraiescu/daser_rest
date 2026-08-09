@@ -13,14 +13,18 @@ class MenuController extends Controller
     public function index(): View
     {
         $settings = CompanySetting::first() ?? new CompanySetting();
+        $showAllergens = $settings->enable_allergens ?? true;
         
         $menus = Menu::query()
             ->where('is_active', true)
-            ->with(['categories' => function ($query) {
+            ->with(['categories' => function ($query) use ($showAllergens) {
                 $query->where('is_active', true)
-                      ->with(['products' => function ($q) {
-                          $q->where('is_active', true)
-                            ->with(['variations', 'ingredients', 'allergenRelations']);
+                      ->with(['products' => function ($q) use ($showAllergens) {
+                          $relations = ['variations', 'ingredients'];
+                          if ($showAllergens) {
+                              $relations[] = 'allergenRelations';
+                          }
+                          $q->where('is_active', true)->with($relations);
                       }])
                       ->orderBy('sort_order');
             }])

@@ -7,6 +7,7 @@ use App\Modules\Menu\Models\Ingredient;
 use Filament\Actions\CreateAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRecords;
 use Illuminate\Support\Facades\Storage;
@@ -24,6 +25,14 @@ class ManageIngredients extends ManageRecords
                 ->color('success')
                 ->icon('heroicon-o-document-arrow-up')
                 ->form([
+                    Placeholder::make('csv_instructions')
+                        ->label('Cum pregătești CSV-ul')
+                        ->content(new \Illuminate\Support\HtmlString(
+                            '<div class="text-sm"><p><strong>Obligatoriu:</strong> nume și unitate. Coloana activ este opțională.</p>'
+                            .'<p>Prima linie conține antetele. Separator: <code>;</code> sau <code>,</code>. Pentru activ: 1/0, da/nu sau true/false.</p>'
+                            .'<pre class="mt-2 whitespace-pre-wrap rounded bg-gray-100 p-2 text-xs">nume;unitate;activ\nFăină;g;1\nLapte;ml;1</pre></div>'
+                        ))
+                        ->columnSpanFull(),
                     FileUpload::make('csv_file')
                         ->label('Fișier CSV')
                         ->disk('local') // Saved to private storage/app/temp-imports

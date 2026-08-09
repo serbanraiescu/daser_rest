@@ -81,6 +81,11 @@ class PlatformSettings extends Page implements HasForms
                                             ->helperText('Ospătarul va vedea toate produsele din toate categoriile împreună în primă fază, putând apoi să filtreze pe o categorie anume.')
                                             ->default(false)
                                             ->columnSpanFull(),
+                                        Toggle::make('enable_allergens')
+                                            ->label('Activează sistemul de alergeni')
+                                            ->helperText('Ascunde alergenii din meniul public și din administrarea produselor, fără să șteargă datele existente.')
+                                            ->default(true)
+                                            ->columnSpanFull(),
                                     ])->columns(3),
                                 Section::make('Meniu Public')
                                     ->schema([

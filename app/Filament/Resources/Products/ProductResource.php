@@ -58,6 +58,11 @@ class ProductResource extends Resource
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpan(2),
+                                        TextInput::make('name_en')
+                                            ->label('Nume în engleză')
+                                            ->maxLength(255)
+                                            ->helperText('Opțional; dacă lipsește, se afișează numele în română.')
+                                            ->columnSpan(2),
                                     ]),
 
                                 \Filament\Forms\Components\Grid::make(4)
@@ -169,6 +174,10 @@ class ProductResource extends Resource
                                     ]),
                                 Textarea::make('description')
                                     ->columnSpanFull(),
+                                Textarea::make('description_en')
+                                    ->label('Descriere în engleză')
+                                    ->helperText('Opțional; dacă lipsește, se afișează descrierea în română.')
+                                    ->columnSpanFull(),
                                 FileUpload::make('image')
                                     ->image()
                                     ->disk('public')
@@ -262,6 +271,7 @@ class ProductResource extends Resource
                                     ])->columns(3),
                                 
                                 Section::make('Alergeni & Caracteristici Speciale')
+                                    ->visible(fn (): bool => CompanySetting::first()?->enable_allergens ?? true)
                                     ->schema([
                                         Select::make('allergenRelations')
                                             ->label('Alergeni (Sistem Nou)')

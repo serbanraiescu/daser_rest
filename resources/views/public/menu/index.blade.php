@@ -159,6 +159,7 @@
                                 </div>
                             </template>
 
+                            @if($settings->enable_allergens ?? true)
                             <template x-if="(selectedProduct?.allergen_relations && selectedProduct.allergen_relations.length > 0) || selectedProduct?.allergens">
                                 <div class="bg-red-50/50 rounded-2xl p-5 border border-red-100">
                                     <h4 class="font-bold text-red-900 mb-3 flex items-center gap-2">
@@ -177,6 +178,7 @@
                                     </div>
                                 </div>
                             </template>
+                            @endif
                         </div>
 
                         <!-- Variations -->
@@ -403,6 +405,8 @@
             openModal(product) {
                 this.selectedProduct = {
                     ...product,
+                    name: product.display_name || product.name,
+                    description: product.display_description || product.description,
                     allergens_legacy: product.allergens // Save legacy string before override if any
                 };
                 this.selectedVariation = null;

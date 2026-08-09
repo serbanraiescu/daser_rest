@@ -29,8 +29,8 @@
             <!-- Content -->
             <div class="p-5 flex-grow flex flex-col justify-between">
                 <div>
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-1" title="{{ $product->name }}">
-                        {{ $product->name }}
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-1" title="{{ $product->display_name }}">
+                        {{ $product->display_name }}
                     </h3>
 
                     @if($product->measurement_value)
@@ -40,7 +40,7 @@
                     @endif
 
                     <p class="text-gray-500 text-xs mb-4 line-clamp-2 leading-relaxed">
-                        {{ $product->description }}
+                        {{ $product->display_description }}
                     </p>
 
                     <!-- Ingredients Summary -->
@@ -52,7 +52,7 @@
                             </span>
                         @endif
 
-                        @if($product->allergenRelations->isNotEmpty())
+                        @if(($settings->enable_allergens ?? true) && $product->allergenRelations->isNotEmpty())
                             <div class="flex gap-1 ml-1">
                                 @foreach($product->allergenRelations as $allergen)
                                     <span class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded text-[9px] font-bold border border-red-100 uppercase">{{ $allergen->name }}</span>
