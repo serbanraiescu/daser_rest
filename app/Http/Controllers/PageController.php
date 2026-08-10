@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Settings\Models\CompanySetting;
+use App\Modules\Gallery\Models\GalleryAlbum;
 use Illuminate\Http\Request;
 
 class PageController extends Controller
@@ -50,9 +51,16 @@ class PageController extends Controller
     public function gallery()
     {
         $settings = CompanySetting::first();
+        $albums = GalleryAlbum::query()
+            ->where('is_active', true)
+            ->with('images')
+            ->orderBy('sort_order')
+            ->orderByDesc('event_date')
+            ->get();
+
         return view('public.pages.gallery', [
             'title' => 'Galerie Evenimente',
-            'gallery' => $settings->gallery_content ?? [],
+            'albums' => $albums,
             'settings' => $settings
         ]);
     }

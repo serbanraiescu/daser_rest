@@ -216,6 +216,35 @@ class PlatformSettings extends Page implements HasForms
                                                 TextInput::make('hours')->placeholder('09:00 - 22:00')->required(),
                                             ])->columns(2)->defaultItems(7),
                                     ]),
+                                Section::make('Recenzii Google')
+                                    ->description('Afișare simplă pe prima pagină, fără API extern.')
+                                    ->schema([
+                                        Toggle::make('show_google_reviews')
+                                            ->label('Afișează secțiunea de recenzii')
+                                            ->default(false),
+                                        TextInput::make('google_reviews_title')
+                                            ->label('Titlul secțiunii')
+                                            ->default('Ce spun clienții noștri'),
+                                        TextInput::make('google_rating')
+                                            ->label('Rating Google')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(5)
+                                            ->step(0.1)
+                                            ->placeholder('4.8'),
+                                        TextInput::make('google_review_count')
+                                            ->label('Număr recenzii')
+                                            ->numeric()
+                                            ->minValue(0),
+                                        TextInput::make('google_reviews_url')
+                                            ->label('Link „Vezi recenziile pe Google”')
+                                            ->url()
+                                            ->columnSpanFull(),
+                                        TextInput::make('google_review_form_url')
+                                            ->label('Link „Lasă o recenzie”')
+                                            ->url()
+                                            ->columnSpanFull(),
+                                    ])->columns(2),
                             ]),
 
                         // TAB: PAGINI LEGALE & INFO
@@ -262,16 +291,6 @@ class PlatformSettings extends Page implements HasForms
                                             ->label('Previne stoc negativ (Inventar)')
                                             ->helperText('Dacă este activ, scăderea automată de stoc se oprește la 0 și nu permite valori negative. Un warning va fi logat.')
                                             ->default(false),
-                                    ]),
-                                Section::make('Galerie Evenimente')
-                                    ->schema([
-                                        FileUpload::make('gallery_content')
-                                            ->label('Imagini Galerie')
-                                            ->image()
-                                            ->multiple()
-                                            ->directory('gallery')
-                                            ->disk('public')
-                                            ->reorderable(),
                                     ]),
                             ]),
                     ])->columnSpanFull(),

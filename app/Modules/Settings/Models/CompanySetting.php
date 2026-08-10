@@ -43,6 +43,12 @@ class CompanySetting extends Model
         'gdpr_content',
         'privacy_content',
         'gallery_content',
+        'show_google_reviews',
+        'google_reviews_title',
+        'google_rating',
+        'google_review_count',
+        'google_reviews_url',
+        'google_review_form_url',
     ];
 
     protected $casts = [
@@ -57,6 +63,9 @@ class CompanySetting extends Model
         'frontend_colors' => 'array',
         'cookie_consent' => 'array',
         'gallery_content' => 'array',
+        'show_google_reviews' => 'boolean',
+        'google_rating' => 'decimal:1',
+        'google_review_count' => 'integer',
     ];
 
     /**
