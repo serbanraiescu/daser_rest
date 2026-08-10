@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SetLocale
 {
+    private const SUPPORTED_LOCALES = ['ro', 'en', 'de', 'it', 'fr'];
+
     /**
      * Handle an incoming request.
      */
@@ -19,9 +21,15 @@ class SetLocale
 
         try {
             $settings = \App\Modules\Settings\Models\CompanySetting::first();
-            if ($settings && $settings->default_language) {
-                app()->setLocale($settings->default_language);
+            $defaultLocale = $settings?->default_language ?: 'ro';
+            $requestedLocale = strtolower((string) $request->query('lang', ''));
+
+            if (in_array($requestedLocale, self::SUPPORTED_LOCALES, true)) {
+                $request->session()->put('locale', $requestedLocale);
             }
+
+            $locale = $request->session()->get('locale', $defaultLocale);
+            app()->setLocale(in_array($locale, self::SUPPORTED_LOCALES, true) ? $locale : 'ro');
         } catch (\Exception $e) {
             // Table doesn't exist yet, just continue
         }

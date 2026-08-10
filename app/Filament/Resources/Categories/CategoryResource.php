@@ -13,6 +13,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Repeater;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 
@@ -64,6 +65,28 @@ class CategoryResource extends Resource
                 TextInput::make('sort_order')
                     ->numeric()
                     ->default(0),
+                Repeater::make('translations')
+                    ->relationship()
+                    ->label('Traduceri categorie')
+                    ->schema([
+                        Select::make('locale')
+                            ->label('Limba')
+                            ->options([
+                                'ro' => 'Română',
+                                'en' => 'English',
+                                'de' => 'Deutsch',
+                                'it' => 'Italiano',
+                                'fr' => 'Français',
+                            ])
+                            ->required()
+                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                        TextInput::make('name')
+                            ->label('Nume tradus')
+                            ->required(),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(0)
+                    ->columnSpanFull(),
             ]);
     }
 

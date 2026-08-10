@@ -19,8 +19,9 @@ class MenuController extends Controller
             ->where('is_active', true)
             ->with(['categories' => function ($query) use ($showAllergens) {
                 $query->where('is_active', true)
+                      ->with('translations')
                       ->with(['products' => function ($q) use ($showAllergens) {
-                          $relations = ['variations', 'ingredients'];
+                          $relations = ['variations', 'ingredients', 'translations'];
                           if ($showAllergens) {
                               $relations[] = 'allergenRelations';
                           }

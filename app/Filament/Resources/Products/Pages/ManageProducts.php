@@ -23,6 +23,18 @@ class ManageProducts extends ManageRecords
     {
         return [
             CreateAction::make(),
+            Action::make('downloadCsvTemplate')
+                ->label('Descarcă model CSV')
+                ->color('gray')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action(function () {
+                    $header = 'categorie;categorie_en;categorie_de;categorie_it;categorie_fr;nume;nume_en;nume_de;nume_it;nume_fr;pret;descriere;descriere_en;descriere_de;descriere_it;descriere_fr;tva;cantitate;unitate;activ;disponibil;ordine;alergeni;destinatie';
+                    $example = 'Pizza;Pizza;Pizza;Pizza;Pizza;Margherita;Margherita Pizza;Pizza Margherita;Pizza Margherita;Pizza Margherita;32,00;Sos de roșii și mozzarella;Tomato sauce and mozzarella;Tomatensauce und Mozzarella;Salsa di pomodoro e mozzarella;Sauce tomate et mozzarella;9;450;g;1;1;10;Gluten|Lapte;kitchen';
+
+                    return response()->streamDownload(function () use ($header, $example): void {
+                        echo "\xEF\xBB\xBF{$header}\r\n{$example}\r\n";
+                    }, 'model-import-produse-multilingv.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+                }),
             Action::make('importCsv')
                 ->label('Importă CSV')
                 ->color('success')
@@ -32,9 +44,11 @@ class ManageProducts extends ManageRecords
                         ->label('Cum pregătești CSV-ul')
                         ->content(new \Illuminate\Support\HtmlString(
                             '<div class="text-sm"><p><strong>Obligatoriu:</strong> categorie, nume, pret.</p>'
-                            .'<p><strong>Opțional:</strong> nume_en, descriere, descriere_en, tva, cantitate, unitate, activ, disponibil, ordine, alergeni, destinatie.</p>'
+                            .'<p><strong>Traduceri:</strong> categorie_en/de/it/fr, nume_en/de/it/fr și descriere_en/de/it/fr.</p>'
+                            .'<p><strong>Opțional:</strong> descriere, tva, cantitate, unitate, activ, disponibil, ordine și alergeni.</p>'
+                            .'<p>Pentru mâncare: <code>destinatie=kitchen</code>. Pentru băuturi: <code>destinatie=bar</code>.</p>'
                             .'<p>Prima linie conține antetele. Separator: <code>;</code>, <code>,</code> sau TAB. Alergenii se separă cu <code>|</code>.</p>'
-                            .'<pre class="mt-2 whitespace-pre-wrap rounded bg-gray-100 p-2 text-xs">categorie;nume;nume_en;pret;descriere;descriere_en;tva;cantitate;unitate;alergeni;destinatie\nPizza;Margherita;Margherita Pizza;32,00;Sos și mozzarella;Tomato sauce and mozzarella;9;450;g;Gluten|Lapte;kitchen</pre></div>'
+                            .'<p class="mt-2"><strong>Recomandare:</strong> descarcă modelul CSV și dă-l AI-ului împreună cu PDF-ul, cerând să păstreze exact antetele.</p></div>'
                         ))
                         ->columnSpanFull(),
                     Select::make('menu_id')
@@ -74,7 +88,8 @@ class ManageProducts extends ManageRecords
                         );
 
                         $body = "Create: {$result['created']}; actualizate: {$result['updated']}; "
-                            . "omise: {$result['skipped']}; categorii noi: {$result['categories_created']}.";
+                            . "omise: {$result['skipped']}; categorii noi: {$result['categories_created']}; "
+                            . "traduceri salvate: {$result['translations_saved']}.";
 
                         if ($result['warnings'] !== []) {
                             $body .= ' Avertismente: '.implode(' ', array_slice($result['warnings'], 0, 3));

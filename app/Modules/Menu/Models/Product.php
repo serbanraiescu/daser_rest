@@ -47,12 +47,24 @@ class Product extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        return app()->getLocale() === 'en' && filled($this->name_en) ? $this->name_en : $this->name;
+        return $this->translationFor(app()->getLocale())?->name ?: $this->name;
     }
 
     public function getDisplayDescriptionAttribute(): ?string
     {
-        return app()->getLocale() === 'en' && filled($this->description_en) ? $this->description_en : $this->description;
+        return $this->translationFor(app()->getLocale())?->description ?: $this->description;
+    }
+
+    public function translations(): HasMany
+    {
+        return $this->hasMany(ProductTranslation::class);
+    }
+
+    public function translationFor(string $locale): ?ProductTranslation
+    {
+        return $this->relationLoaded('translations')
+            ? $this->translations->firstWhere('locale', $locale)
+            : $this->translations()->where('locale', $locale)->first();
     }
 
     public function category(): BelongsTo

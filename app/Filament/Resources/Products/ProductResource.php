@@ -58,11 +58,6 @@ class ProductResource extends Resource
                                             ->required()
                                             ->maxLength(255)
                                             ->columnSpan(2),
-                                        TextInput::make('name_en')
-                                            ->label('Nume în engleză')
-                                            ->maxLength(255)
-                                            ->helperText('Opțional; dacă lipsește, se afișează numele în română.')
-                                            ->columnSpan(2),
                                     ]),
 
                                 \Filament\Forms\Components\Grid::make(4)
@@ -174,10 +169,6 @@ class ProductResource extends Resource
                                     ]),
                                 Textarea::make('description')
                                     ->columnSpanFull(),
-                                Textarea::make('description_en')
-                                    ->label('Descriere în engleză')
-                                    ->helperText('Opțional; dacă lipsește, se afișează descrierea în română.')
-                                    ->columnSpanFull(),
                                 FileUpload::make('image')
                                     ->image()
                                     ->disk('public')
@@ -202,6 +193,37 @@ class ProductResource extends Resource
                                         TextInput::make('stock')->numeric(),
                                     ])
                                     ->visible(fn ($get) => $get('has_variations'))
+                                    ->columnSpanFull(),
+                            ]),
+
+                        \Filament\Forms\Components\Tabs\Tab::make('Traduceri')
+                            ->schema([
+                                Repeater::make('translations')
+                                    ->relationship()
+                                    ->label('Traduceri produs')
+                                    ->schema([
+                                        Select::make('locale')
+                                            ->label('Limba')
+                                            ->options([
+                                                'ro' => 'Română',
+                                                'en' => 'English',
+                                                'de' => 'Deutsch',
+                                                'it' => 'Italiano',
+                                                'fr' => 'Français',
+                                            ])
+                                            ->required()
+                                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                                        TextInput::make('name')
+                                            ->label('Nume tradus')
+                                            ->required()
+                                            ->maxLength(255),
+                                        Textarea::make('description')
+                                            ->label('Descriere tradusă')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->columns(2)
+                                    ->defaultItems(0)
+                                    ->addActionLabel('Adaugă traducere')
                                     ->columnSpanFull(),
                             ]),
 

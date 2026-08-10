@@ -13,11 +13,21 @@ class ProductCsvImporter
 {
     private const HEADER_ALIASES = [
         'category' => ['category', 'categorie', 'category_name', 'nume_categorie'],
+        'category_en' => ['category_en', 'categorie_en'],
+        'category_de' => ['category_de', 'categorie_de'],
+        'category_it' => ['category_it', 'categorie_it'],
+        'category_fr' => ['category_fr', 'categorie_fr'],
         'name' => ['name', 'nume', 'denumire', 'produs', 'product'],
         'name_en' => ['name_en', 'nume_en', 'english_name', 'nume_engleza'],
+        'name_de' => ['name_de', 'nume_de'],
+        'name_it' => ['name_it', 'nume_it'],
+        'name_fr' => ['name_fr', 'nume_fr'],
         'price' => ['price', 'pret', 'pret_ron', 'price_ron'],
         'description' => ['description', 'descriere'],
         'description_en' => ['description_en', 'descriere_en', 'english_description', 'descriere_engleza'],
+        'description_de' => ['description_de', 'descriere_de'],
+        'description_it' => ['description_it', 'descriere_it'],
+        'description_fr' => ['description_fr', 'descriere_fr'],
         'vat_rate' => ['vat_rate', 'tva', 'cota_tva'],
         'measurement_value' => ['measurement_value', 'cantitate', 'gramaj', 'volum'],
         'measurement_unit' => ['measurement_unit', 'unitate', 'um'],
@@ -66,6 +76,7 @@ class ProductCsvImporter
                 'updated' => 0,
                 'skipped' => 0,
                 'categories_created' => 0,
+                'translations_saved' => 0,
                 'warnings' => [],
             ];
             $rowNumber = 1;
@@ -124,6 +135,13 @@ class ProductCsvImporter
                         $result['categories_created']++;
                     }
 
+                    $result['translations_saved'] += $this->syncCategoryTranslations(
+                        $category,
+                        $categoryName,
+                        $row,
+                        $columnIndexes,
+                    );
+
                     $product = Product::query()
                         ->where('category_id', $category->id)
                         ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
@@ -174,6 +192,14 @@ class ProductCsvImporter
                         $result['created']++;
                     }
 
+                    $result['translations_saved'] += $this->syncProductTranslations(
+                        $product,
+                        $name,
+                        $this->value($row, $columnIndexes, 'description'),
+                        $row,
+                        $columnIndexes,
+                    );
+
                     $allergens = $this->splitList($this->value($row, $columnIndexes, 'allergens'));
                     if ($allergens !== []) {
                         $allergenIds = Allergen::query()
@@ -201,6 +227,60 @@ class ProductCsvImporter
         arsort($counts);
 
         return (string) array_key_first($counts);
+    }
+
+    private function syncProductTranslations(
+        Product $product,
+        string $romanianName,
+        string $romanianDescription,
+        array $row,
+        array $indexes,
+    ): int {
+        $saved = 0;
+        $translations = [
+            'ro' => [$romanianName, $romanianDescription],
+            'en' => [$this->value($row, $indexes, 'name_en'), $this->value($row, $indexes, 'description_en')],
+            'de' => [$this->value($row, $indexes, 'name_de'), $this->value($row, $indexes, 'description_de')],
+            'it' => [$this->value($row, $indexes, 'name_it'), $this->value($row, $indexes, 'description_it')],
+            'fr' => [$this->value($row, $indexes, 'name_fr'), $this->value($row, $indexes, 'description_fr')],
+        ];
+
+        foreach ($translations as $locale => [$name, $description]) {
+            if ($name === '') {
+                continue;
+            }
+
+            $product->translations()->updateOrCreate(
+                ['locale' => $locale],
+                ['name' => $name, 'description' => $description !== '' ? $description : null],
+            );
+            $saved++;
+        }
+
+        return $saved;
+    }
+
+    private function syncCategoryTranslations(Category $category, string $romanianName, array $row, array $indexes): int
+    {
+        $saved = 0;
+        $translations = [
+            'ro' => $romanianName,
+            'en' => $this->value($row, $indexes, 'category_en'),
+            'de' => $this->value($row, $indexes, 'category_de'),
+            'it' => $this->value($row, $indexes, 'category_it'),
+            'fr' => $this->value($row, $indexes, 'category_fr'),
+        ];
+
+        foreach ($translations as $locale => $name) {
+            if ($name === '') {
+                continue;
+            }
+
+            $category->translations()->updateOrCreate(['locale' => $locale], ['name' => $name]);
+            $saved++;
+        }
+
+        return $saved;
     }
 
     private function mapHeaders(array $headers): array

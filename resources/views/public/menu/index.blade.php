@@ -20,6 +20,18 @@
     <!-- Dynamic Menu Header (Hero) -->
     @include('public.menu.parts.hero', ['heroStyle' => $heroStyle, 'settings' => $settings])
 
+    <div class="border-b border-gray-100 bg-white print:hidden">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-end gap-1.5" aria-label="Selectare limbă">
+            @foreach(['ro' => 'RO', 'en' => 'EN', 'de' => 'DE', 'it' => 'IT', 'fr' => 'FR'] as $locale => $label)
+                <a href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}"
+                   class="px-3 py-1.5 rounded-full text-xs font-bold border transition-colors {{ app()->getLocale() === $locale ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary' }}"
+                   hreflang="{{ $locale }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+
     <!-- Menus Tabs (Sticky at top-0) -->
     <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm transition-all duration-300">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,7 +69,7 @@
                                 <!-- Category Title (Compact) -->
                                 <div class="mb-6">
                                     <h2 class="text-xl sm:text-2xl font-black text-gray-900 border-b border-gray-150/60 pb-2 flex items-center justify-between">
-                                        <span>{{ $category->name }}</span>
+                                        <span>{{ $category->display_name }}</span>
                                         <span class="text-xs text-gray-400 font-bold uppercase tracking-wider bg-gray-50 px-2.5 py-1 rounded-full border border-gray-150/40">{{ $category->products->count() }} {{ __('produse') }}</span>
                                     </h2>
                                 </div>

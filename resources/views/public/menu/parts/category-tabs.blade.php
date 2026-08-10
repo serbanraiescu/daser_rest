@@ -7,7 +7,7 @@
                         href="#cat-{{ $category->id }}" 
                         class="px-4 py-1.5 bg-gray-50 border border-gray-200 hover:border-primary hover:text-primary rounded-full text-xs font-semibold text-gray-600 whitespace-nowrap transition-all shadow-2xs"
                     >
-                        {{ $category->name }}
+                        {{ $category->display_name }}
                     </a>
                 @endforeach
             </div>
