@@ -28,6 +28,8 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Forms\Form;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 class PlatformSettings extends Page implements HasForms
 {
@@ -287,6 +289,58 @@ class PlatformSettings extends Page implements HasForms
             ->success()
             ->title('Toate setările au fost salvate cu succes!')
             ->send();
+    }
+
+    public function deployUpdateAction(): Action
+    {
+        return Action::make('deployUpdate')
+            ->label('Aplică actualizarea')
+            ->color('success')
+            ->icon('heroicon-o-arrow-path')
+            ->requiresConfirmation()
+            ->modalHeading('Aplică actualizarea platformei')
+            ->modalDescription('Rulează migrările noi și curăță cache-ul aplicației. Codul trebuie actualizat în prealabil din cPanel Git Version Control. Datele existente nu vor fi șterse.')
+            ->modalSubmitActionLabel('Rulează actualizarea')
+            ->action(function (): void {
+                $commands = ['migrate --force', 'optimize:clear'];
+                $outputs = [];
+
+                try {
+                    foreach ($commands as $command) {
+                        $exitCode = Artisan::call($command);
+                        $outputs[] = "{$command}: ".trim(Artisan::output());
+
+                        if ($exitCode !== 0) {
+                            throw new \RuntimeException("Comanda {$command} a eșuat cu codul {$exitCode}.");
+                        }
+                    }
+
+                    Log::info('Actualizarea a fost aplicată din panoul de administrare.', [
+                        'user_id' => auth()->id(),
+                        'commands' => $commands,
+                    ]);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Actualizare aplicată cu succes')
+                        ->body('Migrările au fost rulate, iar cache-ul aplicației a fost curățat.')
+                        ->persistent()
+                        ->send();
+                } catch (\Throwable $exception) {
+                    Log::error('Actualizarea din panoul de administrare a eșuat.', [
+                        'user_id' => auth()->id(),
+                        'outputs' => $outputs,
+                        'exception' => $exception,
+                    ]);
+
+                    Notification::make()
+                        ->danger()
+                        ->title('Actualizarea a eșuat')
+                        ->body($exception->getMessage())
+                        ->persistent()
+                        ->send();
+                }
+            });
     }
 
     public function resetSystemAction(): Action

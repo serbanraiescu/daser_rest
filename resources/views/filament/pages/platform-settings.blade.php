@@ -9,6 +9,16 @@
         </div>
     </form>
 
+    <div class="mt-10 rounded-xl border border-success-200 bg-success-50 p-6 dark:border-success-800 dark:bg-success-950/30">
+        <h3 class="text-lg font-semibold text-success-700 dark:text-success-300">Actualizare platformă</h3>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            După actualizarea codului din cPanel Git Version Control, folosește butonul pentru a rula migrările și a curăța cache-ul. Datele existente nu sunt șterse.
+        </p>
+        <div class="mt-4">
+            {{ $this->deployUpdateAction }}
+        </div>
+    </div>
+
     <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 space-y-6">
         <div>
             <h3 class="text-lg font-medium text-red-600 mb-2">Zonă Periculoasă (Mentenanță)</h3>
