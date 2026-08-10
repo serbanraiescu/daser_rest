@@ -9,6 +9,55 @@ use Illuminate\Support\Facades\Log;
 
 class DeploymentController extends Controller
 {
+    public function migrate(Request $request)
+    {
+        $token = (string) config('app.deploy_token', env('DEPLOY_TOKEN'));
+        $providedToken = (string) $request->query('token', '');
+
+        if ($token === '' || !hash_equals($token, $providedToken)) {
+            abort(403, 'Invalid deploy token.');
+        }
+
+        $log = [];
+
+        try {
+            foreach (['migrate --force', 'optimize:clear'] as $command) {
+                $startedAt = microtime(true);
+                $exitCode = Artisan::call($command);
+                $log[] = [
+                    'command' => $command,
+                    'exit_code' => $exitCode,
+                    'output' => trim(Artisan::output()),
+                    'duration' => round(microtime(true) - $startedAt, 4).'s',
+                ];
+
+                if ($exitCode !== 0) {
+                    throw new \RuntimeException("Command failed: {$command}");
+                }
+            }
+
+            Log::info('Browser migration completed successfully.', ['ip' => $request->ip()]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Migrations and optimize:clear completed successfully.',
+                'log' => $log,
+                'timestamp' => now()->toIso8601String(),
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('Browser migration failed: '.$exception->getMessage(), [
+                'ip' => $request->ip(),
+                'exception' => $exception,
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage(),
+                'log' => $log,
+            ], 500);
+        }
+    }
+
     public function run(Request $request)
     {
         $token = config('app.deploy_token', env('DEPLOY_TOKEN'));

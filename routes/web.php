@@ -23,6 +23,7 @@ Route::prefix('setup/license')->group(function () {
 });
 
 // Deployment
+Route::get('/__deploy/migrate', [DeploymentController::class, 'migrate'])->name('deploy.migrate');
 Route::get('/__deploy/run', [DeploymentController::class, 'run']);
 Route::get('/__deploy/fresh', [DeploymentController::class, 'fresh']);
 Route::get('/__deploy/admin', function() {
@@ -88,4 +89,3 @@ Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class, 'module.enab
     Route::get('/service/print-daily-report', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'printDailyReport'])->name('service.print-daily-report');
     Route::get('/service/pdf-daily-report', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'pdfDailyReport'])->name('service.pdf-daily-report');
 });
-

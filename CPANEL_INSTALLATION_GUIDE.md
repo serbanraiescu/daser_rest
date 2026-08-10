@@ -53,6 +53,16 @@ După ce tabelele au fost create, accesați:
 
 ---
 
+## Actualizarea unei instalări existente
+
+După actualizarea codului din cPanel Git Version Control, migrările noi și curățarea cache-ului se rulează din browser:
+
+`https://domeniu-client.ro/__deploy/migrate?token=parola_secreta_aici`
+
+Acest endpoint rulează numai `migrate --force` și `optimize:clear`. Nu șterge datele existente. Pentru actualizări normale nu utilizați endpoint-ul `fresh`, deoarece acesta recreează baza de date.
+
+---
+
 ## Pasul 5: Crearea Contului de Administrator
 Pentru a crea instantaneu contul de Super Administrator, accesați în browser:
 👉 `https://domeniu-client.ro/__deploy/admin`
