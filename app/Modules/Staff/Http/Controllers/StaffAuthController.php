@@ -26,10 +26,11 @@ class StaffAuthController extends Controller
 
     public function verify(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info("DEBUG: StaffAuthController@verify hit");
-        \Illuminate\Support\Facades\Log::info("DEBUG: All input: " . json_encode($request->all()));
-        
-        $pin = $request->input('pin');
+        $request->validate([
+            'pin' => ['required', 'string', 'max:20'],
+        ]);
+
+        $pin = $request->string('pin')->toString();
 
         // Allow any staff with matching PIN
         $staffMembers = StaffMember::where('is_active', true)->get();
@@ -37,10 +38,7 @@ class StaffAuthController extends Controller
         $matches = [];
 
         foreach ($staffMembers as $staff) {
-            $is_match = Hash::check($pin, $staff->pin_code);
-            \Illuminate\Support\Facades\Log::info("Checking staff: {$staff->name} (ID: {$staff->id}). Match: " . ($is_match ? 'YES' : 'NO'));
-            
-            if ($is_match) {
+            if (Hash::check($pin, $staff->pin_code)) {
                 $matches[] = $staff;
             }
         }
@@ -48,7 +46,6 @@ class StaffAuthController extends Controller
         if (count($matches) > 1) {
              // If multiple matches, we might need a better way, but for now take the first logic
              // Ideally PINs should be unique.
-             \Illuminate\Support\Facades\Log::info("Multiple staff found for PIN $pin");
              $authenticatedStaff = $matches[0];
         } elseif (count($matches) === 1) {
             $authenticatedStaff = $matches[0];
@@ -62,8 +59,8 @@ class StaffAuthController extends Controller
             return $this->redirectBasedOnRole($authenticatedStaff->role);
         }
 
-        \Illuminate\Support\Facades\Log::warning("Staff login failure: PIN $pin not found for any active staff.");
-        return back()->withErrors(['pin' => "Cod PIN incorect. ($pin)"]);
+        \Illuminate\Support\Facades\Log::warning('Staff login failure for an unknown PIN.');
+        return back()->withErrors(['pin' => 'Cod PIN incorect.']);
     }
 
     public function logout()

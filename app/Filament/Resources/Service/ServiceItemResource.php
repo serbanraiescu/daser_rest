@@ -43,10 +43,19 @@ class ServiceItemResource extends Resource
         return $form
             ->schema([
                 Select::make('service_category_id')
-                    ->label('Categorie Serviciu')
-                    ->relationship('category', 'name')
+                    ->label('Subcategorie')
+                    ->options(fn () => \App\Modules\Service\Models\ServiceCategory::query()
+                        ->with('parent')
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn ($category) => [
+                            $category->id => $category->parent
+                                ? $category->parent->name . ' → ' . $category->name
+                                : $category->name,
+                        ]))
                     ->required()
-                    ->placeholder('Selectează o categorie'),
+                    ->searchable()
+                    ->placeholder('Selectează o subcategorie'),
                 TextInput::make('name')
                     ->label('Denumire Serviciu')
                     ->required()

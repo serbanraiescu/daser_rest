@@ -1,576 +1,219 @@
 @extends('layouts.service')
 
 @section('content')
-<div class="min-h-screen bg-gray-950 flex flex-col h-screen overflow-hidden select-none" x-data="{
-    categories: {{ $categories->toJson() }},
-    activeCategoryId: {{ $categories->first()?->id ?? 'null' }},
-    openOrders: {{ $openOrders->toJson() }},
-    cart: [],
-    
-    // Form fields
-    orderId: null,
-    vehicleNumber: '',
-    customerName: '',
-    customerPhone: '',
-    notes: '',
-    
-    // Modal states
-    showPaymentModal: false,
-    paymentMethod: 'cash',
-    paymentNotes: '',
-    showMobileCart: false,
-    
-    // Cart operations
-    addToCart(item) {
-        let existing = this.cart.find(c => c.service_item_id === item.id);
-        if (existing) {
-            existing.quantity++;
-        } else {
-            this.cart.push({
-                service_item_id: item.id,
-                name: item.name,
-                unit_price: item.price,
-                quantity: 1,
-                unit: item.unit ?? 'buc',
-                notes: ''
+<script>
+function serviceDesk(categories, openOrders) {
+    return {
+        categories, openOrders, activeRootId: null, activeSubcategoryId: null, cart: [], orderId: null,
+        vehicleNumber: '', customerName: '', customerPhone: '', notes: '', showDetails: false,
+        showOpenOrders: false, showMobileCart: false, showPaymentModal: false,
+        paymentMethod: 'cash', paymentNotes: '', busy: false,
+
+        init() { if (this.categories.length) this.selectRoot(this.categories[0].id); },
+        activeRoot() { return this.categories.find(category => category.id === this.activeRootId) ?? null; },
+        subcategories() { return this.activeRoot()?.children ?? []; },
+        visibleItems() {
+            const root = this.activeRoot();
+            if (!root) return [];
+            if (!this.activeSubcategoryId) return root.items ?? [];
+            return root.children.find(category => category.id === this.activeSubcategoryId)?.items ?? [];
+        },
+        selectRoot(rootId) {
+            this.activeRootId = rootId;
+            this.activeSubcategoryId = this.activeRoot()?.children?.[0]?.id ?? null;
+        },
+        addToCart(item) {
+            const existing = this.cart.find(line => line.service_item_id === item.id);
+            if (existing) existing.quantity = Number(existing.quantity) + 1;
+            else this.cart.push({
+                service_item_id: item.id, name: item.name, unit_price: Number(item.price),
+                quantity: 1, unit: item.unit || 'buc.', notes: '',
             });
-        }
-    },
-    
-    updateQuantity(itemId, amount) {
-        let item = this.cart.find(c => c.service_item_id === itemId);
-        if (item) {
-            item.quantity = parseFloat(item.quantity) + amount;
-            if (item.quantity <= 0) {
-                this.cart = this.cart.filter(c => c.service_item_id !== itemId);
-            }
-        }
-    },
-    
-    getCartTotal() {
-        return this.cart.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-    },
-    
-    clearForm() {
-        this.orderId = null;
-        this.cart = [];
-        this.vehicleNumber = '';
-        this.customerName = '';
-        this.customerPhone = '';
-        this.notes = '';
-    },
-    
-    loadOrder(order) {
-        this.clearForm();
-        this.orderId = order.id;
-        this.vehicleNumber = order.vehicle_number ?? '';
-        this.customerName = order.customer_name ?? '';
-        this.customerPhone = order.customer_phone ?? '';
-        this.notes = order.notes ?? '';
-        
-        order.items.forEach(item => {
-            this.cart.push({
-                service_item_id: item.service_item_id,
-                name: item.name,
-                unit_price: parseFloat(item.unit_price),
-                quantity: parseFloat(item.quantity),
-                unit: item.unit ?? 'buc',
-                notes: item.notes ?? ''
-            });
-        });
-        this.showMobileCart = true;
-    },
-    
-    async saveOrder(shouldComplete = false) {
-        if (this.cart.length === 0) {
-            alert('Coșul este gol! Adaugă cel puțin un serviciu.');
-            return;
-        }
-        
-        try {
-            const response = await fetch('/service/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                },
-                body: JSON.stringify({
-                    order_id: this.orderId,
-                    customer_name: this.customerName,
-                    customer_phone: this.customerPhone,
-                    vehicle_number: this.vehicleNumber,
-                    notes: this.notes,
-                    items: this.cart
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
+        },
+        changeQuantity(itemId, amount) {
+            const line = this.cart.find(item => item.service_item_id === itemId);
+            if (!line) return;
+            line.quantity = Number(line.quantity) + amount;
+            if (line.quantity <= 0) this.cart = this.cart.filter(item => item.service_item_id !== itemId);
+        },
+        total() { return this.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0); },
+        clearForm() {
+            this.orderId = null; this.cart = []; this.vehicleNumber = ''; this.customerName = '';
+            this.customerPhone = ''; this.notes = ''; this.paymentNotes = ''; this.showDetails = false;
+        },
+        loadOrder(order) {
+            this.clearForm();
+            this.orderId = order.id; this.vehicleNumber = order.vehicle_number || '';
+            this.customerName = order.customer_name || ''; this.customerPhone = order.customer_phone || '';
+            this.notes = order.notes || ''; this.showDetails = Boolean(this.customerName || this.customerPhone || this.notes);
+            this.cart = order.items.map(item => ({
+                service_item_id: item.service_item_id, name: item.name, unit_price: Number(item.unit_price),
+                quantity: Number(item.quantity), unit: item.unit || 'buc.', notes: item.notes || '',
+            }));
+            this.showOpenOrders = false; this.showMobileCart = true;
+        },
+        async request(url, options) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) throw new Error(data.message || 'Operația nu a putut fi finalizată.');
+            return data;
+        },
+        async saveOrder(openPayment = false) {
+            if (!this.cart.length || this.busy) return;
+            this.busy = true;
+            try {
+                const data = await this.request('{{ route('service.orders.store') }}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
+                    body: JSON.stringify({
+                        order_id: this.orderId, vehicle_number: this.vehicleNumber, customer_name: this.customerName,
+                        customer_phone: this.customerPhone, notes: this.notes,
+                        items: this.cart.map(item => ({service_item_id: item.service_item_id, quantity: item.quantity, notes: item.notes})),
+                    }),
+                });
                 this.orderId = data.order.id;
-                
-                if (shouldComplete) {
-                    this.showPaymentModal = true;
-                } else {
-                    alert('Comandă salvată cu succes ca Deschisă!');
-                    window.location.reload();
-                }
-            } else {
-                alert('Eroare: ' + data.message);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Eroare la salvarea comenzii.');
-        }
-    },
-    
-    async finalizePayment() {
-        if (!this.orderId) return;
-        
-        try {
-            const response = await fetch(`/service/orders/${this.orderId}/complete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                },
-                body: JSON.stringify({
-                    payment_method: this.paymentMethod,
-                    notes: this.paymentNotes
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                alert('Comandă finalizată și plătită cu succes!');
-                this.showPaymentModal = false;
+                if (openPayment) this.showPaymentModal = true;
+                else window.location.reload();
+            } catch (error) { alert(error.message); }
+            finally { this.busy = false; }
+        },
+        async finalizePayment() {
+            if (!this.orderId || this.busy) return;
+            this.busy = true;
+            try {
+                await this.request(`/service/orders/${this.orderId}/complete`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
+                    body: JSON.stringify({payment_method: this.paymentMethod, notes: this.paymentNotes}),
+                });
                 window.location.reload();
-            } else {
-                alert('Eroare: ' + data.message);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Eroare la procesarea plății.');
-        }
-    },
-    
-    async cancelCurrentOrder() {
-        if (!this.orderId) return;
-        if (!confirm('Ești sigur că vrei să ANULEZI complet această comandă?')) return;
-        
-        try {
-            const response = await fetch(`/service/orders/${this.orderId}/cancel`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
-                }
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                alert('Comandă anulată!');
+            } catch (error) { alert(error.message); }
+            finally { this.busy = false; }
+        },
+        async cancelOrder() {
+            if (!this.orderId || this.busy || !confirm('Anulezi această fișă?')) return;
+            this.busy = true;
+            try {
+                await this.request(`/service/orders/${this.orderId}/cancel`, {
+                    method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
+                });
                 window.location.reload();
-            } else {
-                alert('Eroare: ' + data.message);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Eroare la anularea comenzii.');
-        }
-    }
-}">
+            } catch (error) { alert(error.message); }
+            finally { this.busy = false; }
+        },
+    };
+}
+</script>
 
-    <!-- Top Navigation Header -->
-    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between shadow-lg">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center font-bold text-gray-950 text-xl shadow-md">S</div>
-            <div>
-                <h1 class="text-lg font-black tracking-tight text-white uppercase">{{ $settings->site_name ?? 'Restaurant OS' }}</h1>
-                <p class="text-xs text-amber-500 font-bold uppercase tracking-wider">Service Module</p>
-            </div>
+<div x-data="serviceDesk(@js($categories), @js($openOrders))" class="min-h-screen bg-slate-100 text-slate-950 lg:h-screen lg:overflow-hidden">
+    <header class="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-3 shadow-sm sm:px-5">
+        <div>
+            <h1 class="text-lg font-black sm:text-2xl">Vulcanizare</h1>
+            <p class="text-xs font-bold text-slate-500">Operator: {{ session('staff_name') }}</p>
         </div>
-        
-        <!-- Center Quick Info / Date -->
-        <div class="hidden md:flex items-center gap-4 text-sm text-gray-400">
-            <span class="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">Operator: <strong class="text-white">{{ session('staff_name') }}</strong></span>
-            <span class="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">Tura: <strong class="text-white">{{ now()->format('d.m.Y') }}</strong></span>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-3">
-            <a href="{{ route('service.print-daily-report') }}" target="_blank" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-bold text-gray-200 transition-all flex items-center gap-2 cursor-pointer shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Raport Zilnic
-            </a>
-            
+        <div class="flex items-center gap-2">
+            <button type="button" @click="showOpenOrders = !showOpenOrders" class="rounded-xl bg-blue-100 px-3 py-3 text-sm font-black text-blue-800">
+                Fișe deschise (<span x-text="openOrders.length"></span>)
+            </button>
             <form action="{{ route('staff.logout') }}" method="POST">
                 @csrf
-                <button type="submit" class="px-4 py-2 bg-red-950/40 hover:bg-red-900 border border-red-800/80 rounded-xl text-sm font-bold text-red-200 transition-all cursor-pointer">
-                    Deconectare
-                </button>
+                <button class="rounded-xl bg-slate-800 px-3 py-3 text-sm font-black text-white">Ieșire</button>
             </form>
         </div>
     </header>
 
-    <!-- Main Content Layout Split -->
-    <main class="flex-1 flex overflow-hidden">
-
-        <!-- LEFT SIDE: Catalog & Categories -->
-        <section class="flex-1 flex flex-col overflow-hidden bg-gray-950 p-6">
-            <!-- Category Selector Tabs -->
-            <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-gray-800 mb-6">
-                <template x-for="cat in categories" :key="cat.id">
-                    <button 
-                        @click="activeCategoryId = cat.id"
-                        class="px-5 py-3 rounded-2xl font-bold text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer shadow-md"
-                        :class="activeCategoryId === cat.id ? 'bg-amber-500 text-gray-950 font-black scale-105' : 'bg-gray-900 hover:bg-gray-800 text-gray-300'"
-                        x-text="cat.name"
-                    ></button>
-                </template>
-            </div>
-
-            <!-- Active Category Services Grid -->
-            <div class="flex-1 overflow-y-auto no-scrollbar pb-10">
-                <template x-for="cat in categories" :key="cat.id">
-                    <div x-show="activeCategoryId === cat.id" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        <template x-for="item in cat.items" :key="item.id">
-                            <div 
-                                @click="addToCart(item)"
-                                class="bg-gray-900 border border-gray-800 rounded-3xl p-5 hover:border-amber-500/50 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 select-none flex flex-col justify-between min-h-[140px] group"
-                            >
-                                <div>
-                                    <div class="flex justify-between items-start">
-                                        <h3 class="font-extrabold text-white text-base group-hover:text-amber-400 transition-colors" x-text="item.name"></h3>
-                                        <span class="px-2 py-0.5 bg-gray-800 rounded-lg text-gray-400 text-[10px] font-bold uppercase tracking-wider" x-text="item.unit"></span>
-                                    </div>
-                                    <p class="text-xs text-gray-400 mt-2 line-clamp-2" x-text="item.description || 'Fără descriere adițională.'"></p>
-                                </div>
-                                
-                                <div class="mt-4 flex justify-between items-end border-t border-gray-800/60 pt-3">
-                                    <span class="text-xs text-gray-400 font-semibold">Tarif standard</span>
-                                    <span class="text-lg font-black text-white"><span x-text="item.price.toFixed(2)"></span> <span class="text-xs text-amber-500 font-bold">{{ $settings->currency ?? 'RON' }}</span></span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </div>
-
-            <!-- Active / Open Orders Section -->
-            <div class="h-[220px] bg-gray-900 border-t border-gray-800 rounded-t-3xl p-5 flex flex-col">
-                <h2 class="text-sm font-black text-amber-500 uppercase tracking-wider mb-3">Comenzi Active în Service (Deschise)</h2>
-                <div class="flex-1 overflow-x-auto flex gap-4 pb-2 no-scrollbar">
-                    <template x-for="order in openOrders" :key="order.id">
-                        <div 
-                            @click="loadOrder(order)"
-                            class="bg-gray-950 border border-gray-800/80 hover:border-amber-500/50 rounded-2xl p-4 w-[240px] flex-shrink-0 cursor-pointer transition-all hover:shadow-md flex flex-col justify-between relative group"
-                            :class="orderId === order.id ? 'border-amber-500 bg-amber-500/5' : ''"
-                        >
-                            <!-- Badge index -->
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <span class="text-xs font-black text-white uppercase" x-text="order.vehicle_number || 'FĂRĂ NR.'"></span>
-                                    <p class="text-[10px] text-gray-400 mt-0.5 line-clamp-1" x-text="order.customer_name || 'Client ocazional'"></p>
-                                </div>
-                                <span class="text-[10px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold uppercase">DESCHISĂ</span>
-                            </div>
-                            
-                            <div class="mt-4 flex justify-between items-end border-t border-gray-800/60 pt-2">
-                                <span class="text-[9px] text-gray-400" x-text="new Date(order.created_at).toLocaleTimeString('ro-RO', {hour: '2-digit', minute:'2-digit'})"></span>
-                                <span class="text-sm font-black text-white"><span x-text="parseFloat(order.total).toFixed(2)"></span> <span class="text-[10px] text-amber-500">{{ $settings->currency ?? 'RON' }}</span></span>
-                            </div>
-                        </div>
-                    </template>
-                    
-                    <template x-if="openOrders.length === 0">
-                        <div class="flex-1 flex items-center justify-center text-gray-500 text-xs">
-                            Nicio comandă deschisă în acest moment. Puteți iniția una nouă din dreapta!
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mobile/Tablet Backdrop for Cart -->
-        <div 
-            x-show="showMobileCart" 
-            class="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
-            @click="showMobileCart = false"
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            x-cloak
-        ></div>
-
-        <!-- RIGHT SIDE: Cart / Ticket Detail -->
-        <section 
-            class="bg-gray-900 flex flex-col h-full shadow-2xl relative transition-all duration-300 z-40
-                   fixed inset-y-0 right-0 w-[85vw] max-w-[400px] border-l border-gray-800
-                   lg:static lg:w-[380px] lg:max-w-none xl:w-[420px] lg:flex"
-            :class="showMobileCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
-        >
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-                <div>
-                    <h2 class="text-base font-black text-white uppercase tracking-tight" x-text="orderId ? 'Modificare Comandă #' + orderId : 'Comandă Nouă'"></h2>
-                    <p class="text-xs text-gray-400 mt-0.5">Adaugă servicii în partea stângă</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button 
-                        @click="clearForm()" 
-                        class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border border-gray-700"
-                        title="Coș nou"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                    <!-- Close Mobile Cart Button -->
-                    <button 
-                        @click="showMobileCart = false" 
-                        class="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all cursor-pointer border border-gray-700 lg:hidden"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Customer & Car details inputs -->
-            <div class="p-5 border-b border-gray-800 space-y-3 bg-gray-950/20">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Număr Mașină *</label>
-                        <input 
-                            type="text" 
-                            x-model="vehicleNumber" 
-                            class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white uppercase font-bold focus:border-amber-500 focus:outline-none placeholder-gray-600" 
-                            placeholder="B-99-AAA"
-                        >
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Nume Client</label>
-                        <input 
-                            type="text" 
-                            x-model="customerName" 
-                            class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none placeholder-gray-600" 
-                            placeholder="ex: Ion Popescu"
-                        >
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Telefon Client</label>
-                        <input 
-                            type="text" 
-                            x-model="customerPhone" 
-                            class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none placeholder-gray-600" 
-                            placeholder="ex: 0722000000"
-                        >
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Observații</label>
-                        <input 
-                            type="text" 
-                            x-model="notes" 
-                            class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none placeholder-gray-600" 
-                            placeholder="ex: Verifică janta"
-                        >
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cart Items list -->
-            <div class="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
-                <template x-for="item in cart" :key="item.service_item_id">
-                    <div class="bg-gray-950 border border-gray-800/80 rounded-2xl p-4 space-y-3">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-extrabold text-white text-xs" x-text="item.name"></h4>
-                                <span class="text-[10px] text-gray-400"><span x-text="item.unit_price.toFixed(2)"></span> / <span x-text="item.unit"></span></span>
-                            </div>
-                            <span class="text-xs font-black text-white"><span x-text="(item.unit_price * item.quantity).toFixed(2)"></span> <span class="text-[10px] text-amber-500">{{ $settings->currency ?? 'RON' }}</span></span>
-                        </div>
-                        
-                        <!-- Controls qty & notes -->
-                        <div class="flex justify-between items-center gap-4 border-t border-gray-800/60 pt-3">
-                            <input 
-                                type="text" 
-                                x-model="item.notes" 
-                                class="bg-transparent border-0 border-b border-gray-800 text-[10px] text-gray-400 focus:border-amber-500 focus:outline-none flex-1 placeholder-gray-700" 
-                                placeholder="Notă serviciu (ex: stânga față)"
-                            >
-                            
-                            <div class="flex items-center bg-gray-900 border border-gray-800 rounded-xl p-0.5">
-                                <button @click="updateQuantity(item.service_item_id, -1)" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 font-extrabold cursor-pointer">-</button>
-                                <span class="px-3 text-xs font-extrabold text-white" x-text="item.quantity"></span>
-                                <button @click="updateQuantity(item.service_item_id, 1)" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 font-extrabold cursor-pointer">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-                
-                <template x-if="cart.length === 0">
-                    <div class="h-full flex flex-col items-center justify-center text-gray-600 py-20">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-700 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        <p class="text-xs font-bold uppercase tracking-wider">Coșul de servicii este gol</p>
-                        <p class="text-[10px] text-gray-500 mt-1">Alege un serviciu din stânga</p>
-                    </div>
-                </template>
-            </div>
-
-            <!-- Footer: Summary & Actions -->
-            <div class="p-5 border-t border-gray-800 bg-gray-950/80 backdrop-blur-md">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Total General</span>
-                    <span class="text-2xl font-black text-white"><span x-text="getCartTotal().toFixed(2)"></span> <span class="text-sm text-amber-500 font-bold">{{ $settings->currency ?? 'RON' }}</span></span>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3" x-show="cart.length > 0">
-                    <!-- If new order or edit -->
-                    <button 
-                        @click="saveOrder(false)" 
-                        class="w-full py-3.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-2xl text-xs font-bold text-gray-200 uppercase tracking-wide transition-all cursor-pointer text-center"
-                    >
-                        Salvează Deschisă
-                    </button>
-                    
-                    <button 
-                        @click="saveOrder(true)" 
-                        class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 rounded-2xl text-xs font-black text-gray-950 uppercase tracking-wide transition-all cursor-pointer text-center shadow-lg shadow-amber-500/10"
-                    >
-                        Finalizează (Plată)
-                    </button>
-                </div>
-                
-                <!-- Cancel order button if editing an open order -->
-                <div class="mt-3" x-show="orderId !== null && cart.length > 0">
-                    <button 
-                        @click="cancelCurrentOrder()" 
-                        class="w-full py-2 bg-red-950/30 hover:bg-red-900 border border-red-900/60 rounded-xl text-[10px] font-bold text-red-300 uppercase tracking-wider transition-all cursor-pointer text-center"
-                    >
-                        Anulează Comanda Complet
-                    </button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Payment Modal Dialog (Alpine state) -->
-    <div 
-        x-show="showPaymentModal" 
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
-        x-cloak
-    >
-        <div class="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md p-6 overflow-hidden shadow-2xl space-y-6">
-            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                <div>
-                    <h3 class="text-base font-black text-white uppercase tracking-tight">Finalizare Plată</h3>
-                    <p class="text-xs text-gray-400 mt-0.5">Alege metoda de plată pentru client</p>
-                </div>
-                <button 
-                    @click="showPaymentModal = false" 
-                    class="p-1 bg-gray-850 hover:bg-gray-800 text-gray-500 hover:text-white rounded-lg transition-all cursor-pointer"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+    <div x-show="showOpenOrders" x-cloak class="absolute inset-x-2 top-20 z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl sm:left-auto sm:right-4 sm:w-[420px]">
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-lg font-black">Fișe deschise</h2>
+            <button @click="showOpenOrders = false" class="rounded-lg bg-slate-100 px-3 py-2 font-black">Închide</button>
+        </div>
+        <div class="space-y-2">
+            <template x-for="order in openOrders" :key="order.id">
+                <button type="button" @click="loadOrder(order)" class="flex w-full items-center justify-between rounded-xl border-2 border-slate-200 p-4 text-left active:border-blue-500">
+                    <span><strong class="block text-lg" x-text="order.vehicle_number || 'Fără număr auto'"></strong><small class="text-slate-500" x-text="order.customer_name || 'Client ocazional'"></small></span>
+                    <strong class="text-lg"><span x-text="Number(order.total).toFixed(2)"></span> lei</strong>
                 </button>
-            </div>
-            
-            <!-- Big Cash/Card selector -->
-            <div class="space-y-3">
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Metodă Plată</label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button 
-                        @click="paymentMethod = 'cash'"
-                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                        :class="paymentMethod === 'cash' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
-                    >
-                        💰 Cash
-                    </button>
-                    <button 
-                        @click="paymentMethod = 'card'"
-                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                        :class="paymentMethod === 'card' ? 'bg-blue-500/10 border-blue-500 text-blue-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
-                    >
-                        💳 Card
-                    </button>
-                    <button 
-                        @click="paymentMethod = 'mixed'"
-                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                        :class="paymentMethod === 'mixed' ? 'bg-amber-500/10 border-amber-500 text-amber-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
-                    >
-                        🔀 Mixtă
-                    </button>
-                    <button 
-                        @click="paymentMethod = 'protocol'"
-                        class="p-4 rounded-2xl border text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
-                        :class="paymentMethod === 'protocol' ? 'bg-purple-500/10 border-purple-500 text-purple-400 scale-105' : 'bg-gray-950 border-gray-800 text-gray-400 hover:bg-gray-850'"
-                    >
-                        ⚖️ Protocol
-                    </button>
-                </div>
-            </div>
-            
-            <div>
-                <label class="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Mențiuni Plată</label>
-                <input 
-                    type="text" 
-                    x-model="paymentNotes" 
-                    class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-3 text-xs text-white focus:border-amber-500 focus:outline-none placeholder-gray-700" 
-                    placeholder="ex: Rest dat 20 lei sau detaliu mixt"
-                >
-            </div>
-            
-            <div class="bg-gray-950/80 rounded-2xl p-4 border border-gray-800/80 flex justify-between items-center">
-                <span class="text-xs font-bold text-gray-400 uppercase">Valoare de plată</span>
-                <span class="text-xl font-black text-white"><span x-text="getCartTotal().toFixed(2)"></span> <span class="text-xs text-amber-500 font-bold">{{ $settings->currency ?? 'RON' }}</span></span>
-            </div>
-            
-            <button 
-                @click="finalizePayment()" 
-                class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 rounded-2xl text-xs font-extrabold text-gray-950 uppercase tracking-wider transition-all cursor-pointer text-center shadow-lg shadow-emerald-500/10"
-            >
-                Confirmă Plată & Închide Comanda
-            </button>
+            </template>
+            <p x-show="!openOrders.length" class="py-8 text-center font-bold text-slate-500">Nu există fișe deschise.</p>
         </div>
     </div>
 
-    <!-- Floating Bottom Bar for Mobile/Tablet Cart Toggle -->
-    <div 
-        class="lg:hidden fixed bottom-6 left-6 right-6 z-30 pointer-events-none"
-        x-show="cart.length > 0 && !showMobileCart"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-10"
-        x-transition:enter-end="opacity-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0"
-        x-transition:leave-end="opacity-0 translate-y-10"
-        x-cloak
-    >
-        <button 
-            @click="showMobileCart = true"
-            class="pointer-events-auto w-full bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-2xl py-4 px-6 font-black text-sm uppercase tracking-wider flex items-center justify-between shadow-2xl shadow-amber-500/20 active:scale-[0.98] transition-all"
-        >
-            <div class="flex items-center gap-2.5">
-                <span class="relative flex h-5 w-5 bg-gray-950 text-amber-500 text-[10px] font-black items-center justify-center rounded-lg animate-pulse"
-                      x-text="cart.reduce((sum, item) => sum + item.quantity, 0)"></span>
-                <span>Vezi Comanda</span>
+    <main class="lg:flex lg:h-[calc(100vh-73px)]">
+        <section class="flex min-w-0 flex-1 flex-col p-3 sm:p-5 lg:overflow-hidden">
+            <div class="grid grid-cols-2 gap-3">
+                <template x-for="category in categories" :key="category.id">
+                    <button type="button" @click="selectRoot(category.id)" class="min-h-16 rounded-2xl border-4 px-4 py-3 text-xl font-black transition" :class="activeRootId === category.id ? 'border-blue-600 bg-blue-600 text-white' : 'border-white bg-white text-slate-700 shadow-sm'" x-text="category.name"></button>
+                </template>
             </div>
-            <div class="flex items-center gap-1">
-                <span x-text="getCartTotal().toFixed(2)"></span>
-                <span class="text-[10px] font-extrabold">{{ $settings->currency ?? 'RON' }}</span>
-            </div>
-        </button>
-    </div>
 
+            <div class="mt-3 flex gap-2 overflow-x-auto pb-2" x-show="subcategories().length">
+                <template x-for="category in subcategories()" :key="category.id">
+                    <button type="button" @click="activeSubcategoryId = category.id" class="min-h-14 shrink-0 rounded-xl border-2 px-5 py-3 text-base font-black" :class="activeSubcategoryId === category.id ? 'border-amber-500 bg-amber-400 text-slate-950' : 'border-slate-300 bg-white text-slate-700'" x-text="category.name"></button>
+                </template>
+            </div>
+
+            <div class="mt-2 grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto pb-28 sm:grid-cols-3 xl:grid-cols-4 lg:pb-4">
+                <template x-for="item in visibleItems()" :key="item.id">
+                    <button type="button" @click="addToCart(item)" class="flex min-h-32 flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition active:scale-95 active:border-emerald-500 active:bg-emerald-50">
+                        <strong class="text-base leading-tight" x-text="item.name"></strong>
+                        <span class="mt-3 text-right text-2xl font-black text-emerald-700"><span x-text="Number(item.price).toLocaleString('ro-RO', {maximumFractionDigits: 2})"></span> lei</span>
+                    </button>
+                </template>
+                <p x-show="!visibleItems().length" class="col-span-full py-10 text-center text-lg font-bold text-slate-500">Nu sunt servicii active aici.</p>
+            </div>
+        </section>
+
+        <div x-show="showMobileCart" x-cloak @click="showMobileCart = false" class="fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
+
+        <aside class="fixed inset-y-0 right-0 z-40 flex w-[92vw] max-w-[440px] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform lg:static lg:w-[430px] lg:translate-x-0" :class="showMobileCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'">
+            <div class="flex items-center justify-between border-b border-slate-200 p-4">
+                <div><h2 class="text-xl font-black" x-text="orderId ? 'Fișa #' + orderId : 'Fișă nouă'"></h2><p class="text-sm font-bold text-slate-500">Apasă serviciile din listă</p></div>
+                <div class="flex gap-2"><button @click="clearForm()" class="rounded-xl bg-slate-100 px-3 py-3 text-sm font-black">Fișă nouă</button><button @click="showMobileCart = false" class="rounded-xl bg-slate-800 px-3 py-3 font-black text-white lg:hidden">×</button></div>
+            </div>
+
+            <div class="border-b border-slate-200 p-4">
+                <label class="mb-1 block text-sm font-black">Număr mașină <span class="font-medium text-slate-400">(opțional)</span></label>
+                <input x-model="vehicleNumber" type="text" placeholder="B 123 ABC" class="w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-xl font-black uppercase outline-none focus:border-blue-600">
+                <button type="button" @click="showDetails = !showDetails" class="mt-3 text-sm font-black text-blue-700"><span x-text="showDetails ? 'Ascunde detaliile clientului' : '+ Detalii client (opțional)'"></span></button>
+                <div x-show="showDetails" x-cloak class="mt-3 grid gap-2">
+                    <input x-model="customerName" type="text" placeholder="Nume client" class="rounded-xl border-2 border-slate-300 px-4 py-3 font-bold">
+                    <input x-model="customerPhone" type="tel" placeholder="Telefon" class="rounded-xl border-2 border-slate-300 px-4 py-3 font-bold">
+                    <input x-model="notes" type="text" placeholder="Observații" class="rounded-xl border-2 border-slate-300 px-4 py-3 font-bold">
+                </div>
+            </div>
+
+            <div class="flex-1 space-y-2 overflow-y-auto p-4">
+                <template x-for="item in cart" :key="item.service_item_id">
+                    <div class="rounded-xl border-2 border-slate-200 p-3">
+                        <div class="flex justify-between gap-3"><strong class="leading-tight" x-text="item.name"></strong><strong class="whitespace-nowrap"><span x-text="(item.unit_price * item.quantity).toFixed(2)"></span> lei</strong></div>
+                        <div class="mt-3 flex items-center justify-end gap-2"><button @click="changeQuantity(item.service_item_id, -1)" class="h-12 w-12 rounded-xl bg-red-100 text-2xl font-black text-red-700">−</button><span class="min-w-10 text-center text-xl font-black" x-text="item.quantity"></span><button @click="changeQuantity(item.service_item_id, 1)" class="h-12 w-12 rounded-xl bg-emerald-100 text-2xl font-black text-emerald-700">+</button></div>
+                    </div>
+                </template>
+                <div x-show="!cart.length" class="py-16 text-center text-lg font-black text-slate-400">Alege un serviciu</div>
+            </div>
+
+            <div class="border-t border-slate-200 bg-white p-4">
+                <div class="mb-3 flex items-center justify-between"><span class="text-lg font-black">TOTAL</span><span class="text-3xl font-black text-emerald-700"><span x-text="total().toFixed(2)"></span> lei</span></div>
+                <div class="grid grid-cols-3 gap-2" x-show="cart.length"><button @click="saveOrder(false)" :disabled="busy" class="rounded-xl bg-slate-200 px-2 py-4 text-sm font-black text-slate-800 disabled:opacity-50">Lasă deschisă</button><button @click="saveOrder(true)" :disabled="busy" class="col-span-2 rounded-xl bg-emerald-500 px-3 py-4 text-xl font-black text-white shadow-lg disabled:opacity-50">ÎNCASEAZĂ</button></div>
+                <button x-show="orderId" @click="cancelOrder()" :disabled="busy" class="mt-2 w-full rounded-xl bg-red-100 py-3 text-sm font-black text-red-700 disabled:opacity-50">Anulează fișa</button>
+            </div>
+        </aside>
+    </main>
+
+    <button x-show="cart.length && !showMobileCart" x-cloak @click="showMobileCart = true" class="fixed bottom-4 left-4 right-4 z-20 flex items-center justify-between rounded-2xl bg-emerald-500 px-5 py-4 text-xl font-black text-white shadow-2xl lg:hidden"><span>VEZI FIȘA</span><span><span x-text="total().toFixed(2)"></span> lei</span></button>
+
+    <div x-show="showPaymentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl">
+            <h2 class="text-center text-2xl font-black">Cum plătește?</h2>
+            <div class="mt-5 grid grid-cols-2 gap-3">
+                <template x-for="method in [{value: 'cash', label: 'NUMERAR'}, {value: 'card', label: 'CARD'}, {value: 'mixed', label: 'MIXT'}, {value: 'protocol', label: 'PROTOCOL'}]" :key="method.value">
+                    <button type="button" @click="paymentMethod = method.value" class="min-h-20 rounded-2xl border-4 text-lg font-black" :class="paymentMethod === method.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-700'" x-text="method.label"></button>
+                </template>
+            </div>
+            <div class="my-5 text-center"><p class="text-sm font-black text-slate-500">TOTAL DE PLATĂ</p><p class="text-4xl font-black text-emerald-700"><span x-text="total().toFixed(2)"></span> lei</p></div>
+            <button @click="finalizePayment()" :disabled="busy" class="w-full rounded-2xl bg-emerald-500 py-5 text-xl font-black text-white disabled:opacity-50">CONFIRMĂ PLATA</button>
+            <button @click="showPaymentModal = false" :disabled="busy" class="mt-2 w-full rounded-xl bg-slate-100 py-4 font-black text-slate-700">Înapoi</button>
+        </div>
+    </div>
 </div>
 @endsection

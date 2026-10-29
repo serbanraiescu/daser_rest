@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
@@ -21,10 +22,17 @@ class ServiceController extends Controller
      */
     public function index(Request $request)
     {
-        $categories = ServiceCategory::where('is_active', true)
-            ->with(['items' => function ($query) {
-                $query->where('is_active', true)->orderBy('sort_order');
-            }])
+        $activeItems = fn ($query) => $query->where('is_active', true)->orderBy('sort_order');
+
+        $categories = ServiceCategory::whereNull('parent_id')
+            ->where('is_active', true)
+            ->with([
+                'items' => $activeItems,
+                'children' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->with(['items' => $activeItems])
+                    ->orderBy('sort_order'),
+            ])
             ->orderBy('sort_order')
             ->get();
 
@@ -51,9 +59,11 @@ class ServiceController extends Controller
             'vehicle_number' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
-            'items.*.service_item_id' => 'required|exists:service_items,id',
+            'items.*.service_item_id' => [
+                'required',
+                Rule::exists('service_items', 'id')->where('is_active', true),
+            ],
             'items.*.quantity' => 'required|numeric|min:0.01',
-            'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.notes' => 'nullable|string|max:500',
         ]);
 
@@ -63,7 +73,7 @@ class ServiceController extends Controller
             $staffId = Session::get('staff_id');
 
             if ($request->filled('order_id')) {
-                $order = ServiceOrder::findOrFail($request->order_id);
+                $order = ServiceOrder::where('status', 'open')->findOrFail($request->order_id);
                 // Clear old items to replace them
                 $order->items()->delete();
             } else {
@@ -81,13 +91,14 @@ class ServiceController extends Controller
 
             // Add new items
             foreach ($request->items as $itemData) {
-                $serviceItem = ServiceItem::find($itemData['service_item_id']);
+                $serviceItem = ServiceItem::where('is_active', true)->findOrFail($itemData['service_item_id']);
                 
                 $order->items()->create([
                     'service_item_id' => $serviceItem->id,
                     'name' => $serviceItem->name,
+                    'unit' => $serviceItem->unit,
                     'quantity' => $itemData['quantity'],
-                    'unit_price' => $itemData['unit_price'],
+                    'unit_price' => $serviceItem->price,
                     'notes' => $itemData['notes'] ?? null,
                 ]);
             }
@@ -117,6 +128,8 @@ class ServiceController extends Controller
      */
     public function showOrder(ServiceOrder $order)
     {
+        abort_unless($order->status === 'open', 404);
+
         return response()->json($order->load('items'));
     }
 
@@ -125,6 +138,8 @@ class ServiceController extends Controller
      */
     public function completeOrder(Request $request, ServiceOrder $order)
     {
+        abort_unless($order->status === 'open', 422, 'Fișa nu mai este deschisă.');
+
         $request->validate([
             'payment_method' => 'required|in:cash,card,mixed,protocol',
             'notes' => 'nullable|string|max:1000'
@@ -157,6 +172,8 @@ class ServiceController extends Controller
      */
     public function cancelOrder(Request $request, ServiceOrder $order)
     {
+        abort_unless($order->status === 'open', 422, 'Fișa nu mai este deschisă.');
+
         try {
             $order->status = 'cancelled';
             $order->payment_status = 'unpaid';

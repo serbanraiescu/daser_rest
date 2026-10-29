@@ -14,6 +14,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 use Filament\Tables\Columns\TextColumn;
@@ -133,9 +134,11 @@ class ServiceOrderResource extends Resource
                                 if ($item) {
                                     $set('name', $item->name);
                                     $set('unit_price', $item->price);
+                                    $set('unit', $item->unit);
                                 }
                             })
                             ->columnSpan(2),
+                        Hidden::make('unit'),
                         TextInput::make('name')
                             ->label('Denumire Snapshot')
                             ->required()

@@ -13,6 +13,7 @@ class ServiceOrderItem extends Model
         'service_order_id',
         'service_item_id',
         'name',
+        'unit',
         'quantity',
         'unit_price',
         'line_total',

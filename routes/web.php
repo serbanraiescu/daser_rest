@@ -80,7 +80,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Service Module (Touch Dashboard, Orders & Reports)
-Route::middleware([\App\Http\Middleware\StaffAuthMiddleware::class, 'module.enabled:service'])->group(function () {
+Route::middleware([
+    \App\Http\Middleware\StaffAuthMiddleware::class,
+    \App\Http\Middleware\ServiceStaffMiddleware::class,
+    'module.enabled:service',
+])->group(function () {
     Route::get('/service', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'index'])->name('service.index');
     Route::post('/service/orders', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'storeOrder'])->name('service.orders.store');
     Route::get('/service/orders/{order}', [\App\Modules\Service\Http\Controllers\ServiceController::class, 'showOrder'])->name('service.orders.show');

@@ -8,6 +8,7 @@ use App\Modules\Settings\Models\CompanySetting;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 use Filament\Tables\Columns\TextColumn;
@@ -38,6 +39,17 @@ class ServiceCategoryResource extends Resource
     {
         return $form
             ->schema([
+                Select::make('parent_id')
+                    ->label('Categorie principală')
+                    ->relationship(
+                        name: 'parent',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => $query->whereNull('parent_id')
+                    )
+                    ->placeholder('Fără — aceasta este o categorie principală')
+                    ->helperText('Alege o categorie principală doar dacă adaugi o subcategorie.')
+                    ->searchable()
+                    ->preload(),
                 TextInput::make('name')
                     ->label('Denumire Categorie')
                     ->required()
@@ -68,6 +80,10 @@ class ServiceCategoryResource extends Resource
                 TextColumn::make('name')
                     ->label('Denumire')
                     ->searchable()
+                    ->sortable(),
+                TextColumn::make('parent.name')
+                    ->label('Categorie principală')
+                    ->placeholder('— Principală —')
                     ->sortable(),
                 TextColumn::make('slug')
                     ->label('Slug')
