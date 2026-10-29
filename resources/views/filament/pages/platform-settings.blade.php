@@ -12,11 +12,15 @@
     <div class="mt-10 rounded-xl border border-success-200 bg-success-50 p-6 dark:border-success-800 dark:bg-success-950/30">
         <h3 class="text-lg font-semibold text-success-700 dark:text-success-300">Actualizare platformă</h3>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            După actualizarea codului din cPanel Git Version Control, folosește butonul pentru a rula migrările și a curăța cache-ul. Datele existente nu sunt șterse.
+            Butonul principal descarcă ultima versiune din repository, rulează migrările și curăță cache-ul. Nu suprascrie modificări locale și nu șterge date.
         </p>
-        <div class="mt-4">
+        <div class="mt-4 flex flex-wrap gap-3">
+            {{ $this->fullDeployAction }}
             {{ $this->deployUpdateAction }}
         </div>
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            „Aplică doar migrările” rămâne disponibil ca variantă de recuperare dacă ai actualizat deja codul manual din cPanel.
+        </p>
     </div>
 
     <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-800 space-y-6">

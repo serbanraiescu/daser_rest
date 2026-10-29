@@ -125,4 +125,6 @@ return [
 
     'deploy_token' => env('DEPLOY_TOKEN'),
 
+    'git_binary' => env('GIT_BINARY', 'git'),
+
 ];

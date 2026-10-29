@@ -30,6 +30,7 @@ use Filament\Forms\Form;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class PlatformSettings extends Page implements HasForms
 {
@@ -346,6 +347,13 @@ class PlatformSettings extends Page implements HasForms
                         ->persistent()
                         ->send();
                 } catch (\Throwable $exception) {
+                    try {
+                        Artisan::call('optimize:clear');
+                        $outputs[] = 'optimize:clear (recuperare): '.trim(Artisan::output());
+                    } catch (\Throwable $cacheException) {
+                        $outputs[] = 'optimize:clear (recuperare) a eșuat: '.$cacheException->getMessage();
+                    }
+
                     Log::error('Actualizarea din panoul de administrare a eșuat.', [
                         'user_id' => auth()->id(),
                         'outputs' => $outputs,
@@ -360,6 +368,144 @@ class PlatformSettings extends Page implements HasForms
                         ->send();
                 }
             });
+    }
+
+    public function fullDeployAction(): Action
+    {
+        return Action::make('fullDeploy')
+            ->label('Actualizează din Git și aplică')
+            ->color('success')
+            ->icon('heroicon-o-cloud-arrow-down')
+            ->requiresConfirmation()
+            ->modalHeading('Actualizare completă din Git')
+            ->modalDescription('Descarcă ultima versiune cu git pull --ff-only, rulează migrările și curăță cache-ul. Procesul se oprește dacă serverul are fișiere Git modificate local; nu se execută resetări și nu se șterg date.')
+            ->modalSubmitActionLabel('Actualizează platforma')
+            ->action(function (): void {
+                $log = [];
+                $beforeRevision = null;
+                $afterRevision = null;
+
+                try {
+                    if (!is_dir(base_path('.git'))) {
+                        throw new \RuntimeException('Directorul aplicației nu este un repository Git.');
+                    }
+
+                    $status = $this->runGitCommand(['status', '--porcelain', '--untracked-files=no']);
+                    $log[] = ['command' => 'git status', ...$status];
+
+                    if (trim($status['output']) !== '') {
+                        throw new \RuntimeException('Actualizarea a fost oprită: există fișiere Git modificate direct pe server. Verifică modificările din cPanel înainte de actualizare.');
+                    }
+
+                    $before = $this->runGitCommand(['rev-parse', 'HEAD']);
+                    $beforeRevision = trim($before['output']);
+                    $log[] = ['command' => 'git rev-parse HEAD', ...$before];
+
+                    $pull = $this->runGitCommand(['pull', '--ff-only'], 180);
+                    $log[] = ['command' => 'git pull --ff-only', ...$pull];
+
+                    $after = $this->runGitCommand(['rev-parse', 'HEAD']);
+                    $afterRevision = trim($after['output']);
+                    $log[] = ['command' => 'git rev-parse HEAD (după pull)', ...$after];
+
+                    $exitCode = Artisan::call('migrate --force');
+                    $migrationOutput = trim(Artisan::output());
+                    $log[] = [
+                        'command' => 'php artisan migrate --force',
+                        'exit_code' => $exitCode,
+                        'output' => $migrationOutput,
+                    ];
+
+                    if ($exitCode !== 0) {
+                        throw new \RuntimeException('Codul a fost actualizat, dar migrările au eșuat. Verifică jurnalul aplicației.');
+                    }
+
+                    $cacheExitCode = Artisan::call('optimize:clear');
+                    $log[] = [
+                        'command' => 'php artisan optimize:clear',
+                        'exit_code' => $cacheExitCode,
+                        'output' => trim(Artisan::output()),
+                    ];
+
+                    if ($cacheExitCode !== 0) {
+                        throw new \RuntimeException('Actualizarea și migrările au reușit, dar curățarea cache-ului a eșuat.');
+                    }
+
+                    Log::info('Actualizarea completă din Git a fost aplicată din panoul admin.', [
+                        'user_id' => auth()->id(),
+                        'before_revision' => $beforeRevision,
+                        'after_revision' => $afterRevision,
+                        'log' => $log,
+                    ]);
+
+                    $changed = $beforeRevision !== $afterRevision;
+
+                    Notification::make()
+                        ->success()
+                        ->title($changed ? 'Platforma a fost actualizată' : 'Platforma era deja la zi')
+                        ->body('Migrările au fost rulate și cache-ul a fost curățat. Reîncarcă pagina pentru a folosi noua versiune.')
+                        ->persistent()
+                        ->send();
+                } catch (\Throwable $exception) {
+                    // Cache-ul rutelor trebuie curățat chiar dacă o migrare eșuează,
+                    // altfel codul nou poate rămâne blocat în rutele versiunii vechi.
+                    try {
+                        $cacheExitCode = Artisan::call('optimize:clear');
+                        $log[] = [
+                            'command' => 'php artisan optimize:clear (recuperare)',
+                            'exit_code' => $cacheExitCode,
+                            'output' => trim(Artisan::output()),
+                        ];
+                    } catch (\Throwable $cacheException) {
+                        $log[] = [
+                            'command' => 'php artisan optimize:clear (recuperare)',
+                            'exit_code' => 1,
+                            'output' => $cacheException->getMessage(),
+                        ];
+                    }
+
+                    Log::error('Actualizarea completă din Git a eșuat.', [
+                        'user_id' => auth()->id(),
+                        'before_revision' => $beforeRevision,
+                        'after_revision' => $afterRevision,
+                        'log' => $log,
+                        'exception' => $exception,
+                    ]);
+
+                    Notification::make()
+                        ->danger()
+                        ->title('Actualizarea nu a fost finalizată')
+                        ->body($exception->getMessage())
+                        ->persistent()
+                        ->send();
+                }
+            });
+    }
+
+    /**
+     * Rulează o comandă Git fără shell și returnează output-ul pentru audit.
+     */
+    protected function runGitCommand(array $arguments, int $timeout = 60): array
+    {
+        $process = new Process(
+            [config('app.git_binary', 'git'), ...$arguments],
+            base_path(),
+            null,
+            null,
+            $timeout,
+        );
+        $process->run();
+
+        $output = trim($process->getOutput().PHP_EOL.$process->getErrorOutput());
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Comanda Git a eșuat: '.($output ?: 'fără detalii returnate de server.'));
+        }
+
+        return [
+            'exit_code' => $process->getExitCode(),
+            'output' => $output,
+        ];
     }
 
     public function resetSystemAction(): Action
