@@ -6,9 +6,8 @@
         $staffMembers = $data['staff'];
         $history = $data['history'];
         $rangeTitle = $data['range_title'];
-        $company = \App\Modules\Settings\Models\CompanySetting::first();
-        $currency = $company->currency ?? 'RON';
-        $siteName = $company->site_name ?? 'WPALounge';
+        $currency = $data['currency'];
+        $siteName = $data['site_name'];
     @endphp
 
     <div class="space-y-6">
@@ -138,7 +137,7 @@
                 </div>
                 <div class="mt-4">
                     <p class="text-2xl font-black text-gray-900 dark:text-white">{{ number_format($kpis['total_revenue'], 2) }} <span class="text-sm font-bold text-gray-400 dark:text-gray-500">{{ $currency }}</span></p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Exclusiv comenzi anulate</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Numerar, card și mixt achitate</p>
                 </div>
             </div>
 
@@ -294,16 +293,17 @@
                             <tr>
                                 <th class="px-6 py-3">Metodă Plată</th>
                                 <th class="px-6 py-3 text-center">Fișe</th>
-                                <th class="px-6 py-3 text-right">Total Încăsări</th>
+                                <th class="px-6 py-3 text-right">Valoare</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                             @php
-                                $cashCount = $history->where('status', 'completed')->where('payment_method', 'cash')->count();
-                                $cardCount = $history->where('status', 'completed')->where('payment_method', 'card')->count();
-                                $mixedCount = $history->where('status', 'completed')->where('payment_method', 'mixed')->count();
-                                $protocolCount = $history->where('status', 'completed')->where('payment_method', 'protocol')->count();
-                                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount);
+                                $cashCount = $kpis['payment_counts']['cash'];
+                                $cardCount = $kpis['payment_counts']['card'];
+                                $mixedCount = $kpis['payment_counts']['mixed'];
+                                $protocolCount = $kpis['payment_counts']['protocol'];
+                                $clientAccountCount = $kpis['payment_counts']['client_account'];
+                                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount + $clientAccountCount);
                             @endphp
                             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                 <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">CASH</td>
@@ -326,9 +326,14 @@
                                 <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['protocol_revenue'] ?? 0, 2) }} {{ $currency }}</td>
                             </tr>
                             <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">ALTELE / NESPECIFICATE</td>
+                                <td class="px-6 py-3 font-semibold text-gray-850 dark:text-gray-200">ALTELE / NEACHITATE</td>
                                 <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $unpaidCount }}</td>
                                 <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['unpaid_revenue'] ?? 0, 2) }} {{ $currency }}</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-3 font-semibold">PE CONT CLIENT</td>
+                                <td class="px-6 py-3 text-center font-bold">{{ $clientAccountCount }}</td>
+                                <td class="px-6 py-3 text-right font-semibold">{{ number_format($kpis['client_account_revenue'], 2) }} {{ $currency }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -337,6 +342,14 @@
         </div>
 
         <!-- 4. Detailed Order History Table -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-2">
+            <h3 class="text-lg font-bold">Lucrări pe cont și facturare</h3>
+            <p>Valoare lucrări finalizate: <strong>{{ number_format($kpis['completed_value'], 2) }} {{ $currency }}</strong>.</p>
+            <p>Încă nefacturat din perioada selectată: <strong>{{ number_format($data['uninvoiced']['period']['amount'], 2) }} {{ $currency }}</strong> ({{ $data['uninvoiced']['period']['orders_count'] }} fișe).</p>
+            <p>Total nefacturat în prezent, toate perioadele: <strong>{{ number_format($data['uninvoiced']['current']['amount'], 2) }} {{ $currency }}</strong>.</p>
+            <p>Facturi cu data în perioada selectată: <strong>{{ number_format($data['invoices']['amount'], 2) }} {{ $currency }}</strong> ({{ $data['invoices']['count'] }} facturi).</p>
+            <p class="text-sm text-gray-500">Contul client și protocolul sunt separate de încasări. Facturarea nu confirmă plata. Nefacturat reflectă starea actuală; perioadele se raportează la finalizarea lucrării, în {{ $data['meta']['timezone'] }}.</p>
+        </div>
         <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -373,9 +386,9 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-3 uppercase text-xs font-bold text-gray-600 dark:text-gray-400">
-                                    {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : ($order->payment_method === 'protocol' ? 'Protocol' : 'Nespecificată'))) }}
+                                    {{ ['cash' => 'Cash', 'card' => 'Card', 'mixed' => 'Mixtă', 'protocol' => 'Protocol', 'client_account' => 'Pe cont client'][$order->payment_method] ?? 'Nespecificată' }}
                                 </td>
-                                <td class="px-6 py-3 text-xs">{{ $order->created_at->format('d.m.Y H:i') }}</td>
+                                <td class="px-6 py-3 text-xs">{{ ($order->status === 'completed' ? ($order->completed_at ?? $order->created_at) : $order->created_at)->copy()->setTimezone($data['meta']['timezone'])->format('d.m.Y H:i') }}</td>
                                 <td class="px-6 py-3 text-right font-bold text-gray-900 dark:text-white">{{ number_format($order->total, 2) }} {{ $currency }}</td>
                                 <td class="px-6 py-3 font-medium">
                                     <span class="text-sm text-gray-700 dark:text-gray-300">

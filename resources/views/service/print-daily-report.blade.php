@@ -122,7 +122,7 @@
             <td class="text-right bold">{{ $report['total_orders_count'] }}</td>
         </tr>
         <tr>
-            <td>Comenzi Încasate:</td>
+            <td>Fișe finalizate:</td>
             <td class="text-right bold">{{ $report['completed_orders_count'] }}</td>
         </tr>
         <tr class="bold">
@@ -149,10 +149,23 @@
             <td class="text-right bold">{{ number_format($report['mixed_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
         </tr>
         <tr>
-            <td>Încasări PROTOCOL:</td>
+            <td>Protocol:</td>
             <td class="text-right bold">{{ number_format($report['protocol_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
         </tr>
+        <tr>
+            <td>Pe cont client:</td>
+            <td class="text-right bold">{{ number_format($report['client_account_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
+        </tr>
+        <tr>
+            <td>Din cont client, încă nefacturat:</td>
+            <td class="text-right bold">{{ number_format($report['uninvoiced_revenue'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
+        </tr>
+        <tr>
+            <td>Valoare lucrări finalizate:</td>
+            <td class="text-right bold">{{ number_format($report['completed_value'], 2) }} {{ $settings->currency ?? 'RON' }}</td>
+        </tr>
     </table>
+    <p>Încasările cuprind numerar, card și mixt. Contul client și protocolul sunt evidențiate separat. Facturarea nu confirmă plata.</p>
 
     <div class="border-b"></div>
     <div class="bold">SERVICII PRESTATE</div>

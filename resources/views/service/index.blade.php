@@ -2,12 +2,13 @@
 
 @section('content')
 <script>
-function serviceDesk(categories, openOrders) {
+function serviceDesk(categories, openOrders, customers) {
     return {
         categories, openOrders, activeRootId: null, activeSubcategoryId: null, cart: [], orderId: null,
         vehicleNumber: '', customerName: '', customerPhone: '', notes: '', showDetails: false,
         showOpenOrders: false, showMobileCart: false, showPaymentModal: false,
         paymentMethod: 'cash', paymentNotes: '', busy: false,
+        customers, serviceCustomerId: null, customerSearch: '', showCustomerModal: false,
 
         init() { if (this.categories.length) this.selectRoot(this.categories[0].id); },
         activeRoot() { return this.categories.find(category => category.id === this.activeRootId) ?? null; },
@@ -37,13 +38,36 @@ function serviceDesk(categories, openOrders) {
             if (line.quantity <= 0) this.cart = this.cart.filter(item => item.service_item_id !== itemId);
         },
         total() { return this.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0); },
+        selectedCustomer() { return this.customers.find(customer => customer.id === this.serviceCustomerId) ?? null; },
+        filteredCustomers() {
+            const search = this.customerSearch.trim().toLocaleLowerCase('ro-RO');
+            return this.customers.filter(customer => [customer.name, customer.fiscal_code, customer.phone]
+                .some(value => String(value || '').toLocaleLowerCase('ro-RO').includes(search)));
+        },
+        choosePaymentMethod(method) {
+            this.paymentMethod = method;
+            if (method === 'client_account') this.openCustomerPicker();
+        },
+        openCustomerPicker() {
+            this.customerSearch = '';
+            this.showPaymentModal = false;
+            this.showCustomerModal = true;
+        },
+        chooseCustomer(customer) {
+            this.serviceCustomerId = customer.id;
+            this.showCustomerModal = false;
+            this.showPaymentModal = true;
+        },
         clearForm() {
             this.orderId = null; this.cart = []; this.vehicleNumber = ''; this.customerName = '';
             this.customerPhone = ''; this.notes = ''; this.paymentNotes = ''; this.showDetails = false;
+            this.paymentMethod = 'cash'; this.serviceCustomerId = null;
+            this.showCustomerModal = false; this.showPaymentModal = false;
         },
         loadOrder(order) {
             this.clearForm();
             this.orderId = order.id; this.vehicleNumber = order.vehicle_number || '';
+            this.paymentMethod = order.payment_method || 'cash'; this.serviceCustomerId = order.service_customer_id || null;
             this.customerName = order.customer_name || ''; this.customerPhone = order.customer_phone || '';
             this.notes = order.notes || ''; this.showDetails = Boolean(this.customerName || this.customerPhone || this.notes);
             this.cart = order.items.map(item => ({
@@ -55,7 +79,7 @@ function serviceDesk(categories, openOrders) {
         async request(url, options) {
             const response = await fetch(url, options);
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success) throw new Error(data.message || 'Operația nu a putut fi finalizată.');
+            if (!response.ok || !data.success) throw new Error(Object.values(data.errors || {}).flat().join('\n') || data.message || 'Operația nu a putut fi finalizată.');
             return data;
         },
         async saveOrder(openPayment = false) {
@@ -64,7 +88,7 @@ function serviceDesk(categories, openOrders) {
             try {
                 const data = await this.request('{{ route('service.orders.store') }}', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
+                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
                     body: JSON.stringify({
                         order_id: this.orderId, vehicle_number: this.vehicleNumber, customer_name: this.customerName,
                         customer_phone: this.customerPhone, notes: this.notes,
@@ -79,12 +103,19 @@ function serviceDesk(categories, openOrders) {
         },
         async finalizePayment() {
             if (!this.orderId || this.busy) return;
+            if (this.paymentMethod === 'client_account' && !this.selectedCustomer()) {
+                this.openCustomerPicker();
+                return;
+            }
             this.busy = true;
             try {
                 await this.request(`/service/orders/${this.orderId}/complete`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
-                    body: JSON.stringify({payment_method: this.paymentMethod, notes: this.paymentNotes}),
+                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
+                    body: JSON.stringify({
+                        payment_method: this.paymentMethod, notes: this.paymentNotes,
+                        service_customer_id: this.paymentMethod === 'client_account' ? this.serviceCustomerId : null,
+                    }),
                 });
                 window.location.reload();
             } catch (error) { alert(error.message); }
@@ -105,7 +136,7 @@ function serviceDesk(categories, openOrders) {
 }
 </script>
 
-<div x-data="serviceDesk(@js($categories), @js($openOrders))" class="min-h-screen bg-slate-100 text-slate-950 lg:h-screen lg:overflow-hidden">
+<div x-data="serviceDesk(@js($categories), @js($openOrders), @js($customers))" class="min-h-screen bg-slate-100 text-slate-950 lg:h-screen lg:overflow-hidden">
     <header class="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-3 shadow-sm sm:px-5">
         <div>
             <h1 class="text-lg font-black sm:text-2xl">Vulcanizare</h1>
@@ -203,16 +234,39 @@ function serviceDesk(categories, openOrders) {
     <button x-show="cart.length && !showMobileCart" x-cloak @click="showMobileCart = true" class="fixed bottom-4 left-4 right-4 z-20 flex items-center justify-between rounded-2xl bg-emerald-500 px-5 py-4 text-xl font-black text-white shadow-2xl lg:hidden"><span>VEZI FIȘA</span><span><span x-text="total().toFixed(2)"></span> lei</span></button>
 
     <div x-show="showPaymentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-        <div class="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl">
+        <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label="Metoda de încasare">
             <h2 class="text-center text-2xl font-black">Cum plătește?</h2>
             <div class="mt-5 grid grid-cols-2 gap-3">
-                <template x-for="method in [{value: 'cash', label: 'NUMERAR'}, {value: 'card', label: 'CARD'}, {value: 'mixed', label: 'MIXT'}, {value: 'protocol', label: 'PROTOCOL'}]" :key="method.value">
-                    <button type="button" @click="paymentMethod = method.value" class="min-h-20 rounded-2xl border-4 text-lg font-black" :class="paymentMethod === method.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-700'" x-text="method.label"></button>
+                <template x-for="method in [{value: 'cash', label: 'NUMERAR'}, {value: 'card', label: 'CARD'}, {value: 'mixed', label: 'MIXT'}, {value: 'protocol', label: 'PROTOCOL'}, {value: 'client_account', label: 'PE CONT CLIENT'}]" :key="method.value">
+                    <button type="button" @click="choosePaymentMethod(method.value)" :disabled="busy" class="min-h-20 rounded-2xl border-4 text-lg font-black disabled:opacity-50" :class="[paymentMethod === method.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-700', method.value === 'client_account' ? 'col-span-2' : '']" x-text="method.label"></button>
                 </template>
             </div>
+            <div x-show="paymentMethod === 'client_account'" x-cloak class="mt-4 rounded-xl bg-amber-50 p-4 text-amber-950">
+                <p class="font-black" x-text="selectedCustomer()?.name || 'Alege un client din registru'"></p>
+                <p class="mt-1 text-sm">Fișa va apărea în admin la „De facturat”. Nu se înregistrează o încasare.</p>
+                <button type="button" @click="openCustomerPicker()" :disabled="busy" class="mt-2 font-black underline">Alege / schimbă clientul</button>
+            </div>
             <div class="my-5 text-center"><p class="text-sm font-black text-slate-500">TOTAL DE PLATĂ</p><p class="text-4xl font-black text-emerald-700"><span x-text="total().toFixed(2)"></span> lei</p></div>
-            <button @click="finalizePayment()" :disabled="busy" class="w-full rounded-2xl bg-emerald-500 py-5 text-xl font-black text-white disabled:opacity-50">CONFIRMĂ PLATA</button>
+            <button @click="finalizePayment()" :disabled="busy || (paymentMethod === 'client_account' && !selectedCustomer())" class="w-full rounded-2xl bg-emerald-500 py-5 text-xl font-black text-white disabled:opacity-50" x-text="paymentMethod === 'client_account' ? 'CONFIRMĂ PE CONT CLIENT' : 'CONFIRMĂ PLATA'"></button>
             <button @click="showPaymentModal = false" :disabled="busy" class="mt-2 w-full rounded-xl bg-slate-100 py-4 font-black text-slate-700">Înapoi</button>
+        </div>
+    </div>
+    <div x-show="showCustomerModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <div class="flex max-h-[90vh] w-full max-w-lg flex-col rounded-3xl bg-white p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label="Alege clientul pentru facturare">
+            <h2 class="text-2xl font-black">Alege clientul</h2>
+            <p class="mt-1 text-sm text-slate-600">Clienții activi salvați în admin, la „Clienți vulcanizare”.</p>
+            <label for="service-customer-search" class="mt-4 text-sm font-bold">Caută după nume, CUI sau telefon</label>
+            <input id="service-customer-search" x-model="customerSearch" type="search" class="mt-1 rounded-xl border-2 border-slate-300 px-4 py-3 font-bold" placeholder="Caută client...">
+            <div class="mt-3 space-y-2 overflow-y-auto">
+                <template x-for="customer in filteredCustomers()" :key="customer.id">
+                    <button type="button" @click="chooseCustomer(customer)" class="block w-full rounded-xl border-2 p-4 text-left" :class="serviceCustomerId === customer.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200'">
+                        <strong class="block text-lg" x-text="customer.name"></strong>
+                        <span class="text-sm text-slate-600" x-text="[customer.fiscal_code ? 'CUI: ' + customer.fiscal_code : '', customer.phone].filter(Boolean).join(' · ')"></span>
+                    </button>
+                </template>
+                <p x-show="!filteredCustomers().length" class="py-6 text-center font-bold text-slate-600" x-text="customers.length ? 'Niciun client nu corespunde căutării.' : 'Nu există clienți activi. Adaugă clientul din admin și reîncarcă pagina; fișa salvată rămâne în Fișe deschise.'"></p>
+            </div>
+            <button type="button" @click="showCustomerModal = false; showPaymentModal = true" class="mt-4 rounded-xl bg-slate-100 py-4 font-black text-slate-700">Înapoi la încasare</button>
         </div>
     </div>
 </div>

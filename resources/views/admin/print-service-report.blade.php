@@ -240,17 +240,18 @@
         <thead>
             <tr>
                 <th style="width: 40%;" class="text-left">Metodă Plată</th>
-                <th style="width: 30%; text-align: center;">Fișe încasate</th>
-                <th style="width: 30%;" class="text-right">Valoare Totală Încăsări</th>
+                <th style="width: 30%; text-align: center;">Fișe</th>
+                <th style="width: 30%;" class="text-right">Valoare</th>
             </tr>
         </thead>
         <tbody>
             @php
-                $cashCount = $history->where('status', 'completed')->where('payment_method', 'cash')->count();
-                $cardCount = $history->where('status', 'completed')->where('payment_method', 'card')->count();
-                $mixedCount = $history->where('status', 'completed')->where('payment_method', 'mixed')->count();
-                $protocolCount = $history->where('status', 'completed')->where('payment_method', 'protocol')->count();
-                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount);
+                $cashCount = $kpis['payment_counts']['cash'];
+                $cardCount = $kpis['payment_counts']['card'];
+                $mixedCount = $kpis['payment_counts']['mixed'];
+                $protocolCount = $kpis['payment_counts']['protocol'];
+                $clientAccountCount = $kpis['payment_counts']['client_account'];
+                $unpaidCount = $kpis['successful_orders'] - ($cashCount + $cardCount + $mixedCount + $protocolCount + $clientAccountCount);
             @endphp
             <tr>
                 <td class="bold">Încasări CASH</td>
@@ -268,22 +269,31 @@
                 <td class="text-right font-bold text-success">{{ number_format($kpis['mixed_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr>
-                <td class="bold">Încasări PROTOCOL</td>
+                <td class="bold">PROTOCOL</td>
                 <td class="text-center font-bold">{{ $protocolCount }}</td>
                 <td class="text-right font-bold text-success">{{ number_format($kpis['protocol_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr>
-                <td class="bold">Alte încasări / Nespecificate</td>
+                <td class="bold">Altele / Neachitate</td>
                 <td class="text-center font-bold">{{ $unpaidCount }}</td>
                 <td class="text-right font-bold text-success">{{ number_format($kpis['unpaid_revenue'], 2) }} {{ $currency }}</td>
             </tr>
             <tr style="background-color: #f1f5f9 !important;">
-                <td class="bold large">TOTAL GENERAL VENITURI</td>
-                <td class="text-center font-bold large">{{ $kpis['successful_orders'] }}</td>
+                <td class="bold large">TOTAL ÎNCASĂRI</td>
+                <td class="text-center font-bold large">{{ $cashCount + $cardCount + $mixedCount }}</td>
                 <td class="text-right font-bold large text-success" style="font-size: 13px;">{{ number_format($kpis['total_revenue'], 2) }} {{ $currency }}</td>
+            </tr>
+            <tr>
+                <td class="bold">PE CONT CLIENT</td>
+                <td class="text-center font-bold">{{ $clientAccountCount }}</td>
+                <td class="text-right font-bold">{{ number_format($kpis['client_account_revenue'], 2) }} {{ $currency }}</td>
             </tr>
         </tbody>
     </table>
+    <p>Valoare lucrări finalizate: <strong>{{ number_format($kpis['completed_value'], 2) }} {{ $currency }}</strong>.</p>
+    <p>Încă nefacturat din perioada selectată: <strong>{{ number_format($uninvoiced['period']['amount'], 2) }} {{ $currency }}</strong>. Total nefacturat în prezent: <strong>{{ number_format($uninvoiced['current']['amount'], 2) }} {{ $currency }}</strong>.</p>
+    <p>Facturi din perioada selectată: <strong>{{ number_format($invoices['amount'], 2) }} {{ $currency }}</strong> ({{ $invoices['count'] }} facturi). Facturarea nu confirmă plata.</p>
+    <p>Contul client și protocolul sunt separate de încasări. Perioadele folosesc data finalizării, în {{ $meta['timezone'] }}. Nefacturat reflectă starea actuală.</p>
 
     <!-- Side by Side Tables: Top Services and Operators -->
     <table style="width: 100%; border: 0; margin-bottom: 24px;" cellpadding="0" cellspacing="0">
@@ -366,9 +376,9 @@
                     <td class="bold">#{{ $order->id }}</td>
                     <td class="text-center font-bold">{{ $order->vehicle_number ?? '-' }}</td>
                     <td class="text-center uppercase" style="font-size: 9px; font-weight: bold; color: #475569;">
-                        {{ $order->payment_method === 'cash' ? 'Cash' : ($order->payment_method === 'card' ? 'Card' : ($order->payment_method === 'mixed' ? 'Mixtă' : ($order->payment_method === 'protocol' ? 'Protocol' : 'Nespecificată'))) }}
+                        {{ ['cash' => 'Cash', 'card' => 'Card', 'mixed' => 'Mixtă', 'protocol' => 'Protocol', 'client_account' => 'Pe cont client'][$order->payment_method] ?? 'Nespecificată' }}
                     </td>
-                    <td class="text-center text-muted" style="font-size: 10px;">{{ $order->created_at->format('d.m.Y H:i') }}</td>
+                    <td class="text-center text-muted" style="font-size: 10px;">{{ ($order->status === 'completed' ? ($order->completed_at ?? $order->created_at) : $order->created_at)->copy()->setTimezone($meta['timezone'])->format('d.m.Y H:i') }}</td>
                     <td class="text-right bold">{{ number_format($order->total, 2) }} {{ $currency }}</td>
                     <td class="text-center">
                         @php

@@ -17,6 +17,10 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-/_project_docs/
+/_project_docs/*
+!/_project_docs/README.md
+!/_project_docs/06-service-module.md
+!/_project_docs/10-deployment.md
+!/_project_docs/21-api-rapoarte-n8n.md
 /_internal_docs/
 

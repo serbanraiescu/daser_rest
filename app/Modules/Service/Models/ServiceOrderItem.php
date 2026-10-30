@@ -4,6 +4,7 @@ namespace App\Modules\Service\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 class ServiceOrderItem extends Model
 {
@@ -41,8 +42,11 @@ class ServiceOrderItem extends Model
         parent::boot();
 
         static::saving(function ($item) {
+            $item->ensureOrderIsEditable();
             $item->line_total = $item->quantity * $item->unit_price;
         });
+
+        static::deleting(fn ($item) => $item->ensureOrderIsEditable());
 
         static::saved(function ($item) {
             if ($item->order) {
@@ -55,5 +59,15 @@ class ServiceOrderItem extends Model
                 $item->order->recalculateTotal();
             }
         });
+    }
+
+    private function ensureOrderIsEditable(): void
+    {
+        $orderIds = array_filter([$this->service_order_id, $this->getRawOriginal('service_order_id')]);
+        foreach (ServiceOrder::whereIn('id', $orderIds)->get() as $order) {
+            if ($order->hasLockedAccount()) {
+                throw ValidationException::withMessages(['items' => 'Serviciile unei fișe pe cont client finalizate nu mai pot fi modificate.']);
+            }
+        }
     }
 }

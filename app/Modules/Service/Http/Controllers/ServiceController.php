@@ -4,6 +4,7 @@ namespace App\Modules\Service\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Service\Models\ServiceCategory;
+use App\Modules\Service\Models\ServiceCustomer;
 use App\Modules\Service\Models\ServiceItem;
 use App\Modules\Service\Models\ServiceOrder;
 use App\Modules\Service\Models\ServiceOrderItem;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ServiceController extends Controller
 {
@@ -43,8 +45,10 @@ class ServiceController extends Controller
             ->get();
 
         $settings = CompanySetting::first() ?? new CompanySetting();
+        $customers = ServiceCustomer::where('is_active', true)->orderBy('name')
+            ->get(['id', 'name', 'fiscal_code', 'phone']);
 
-        return view('service.index', compact('categories', 'openOrders', 'settings'));
+        return view('service.index', compact('categories', 'openOrders', 'settings', 'customers'));
     }
 
     /**
@@ -73,7 +77,7 @@ class ServiceController extends Controller
             $staffId = Session::get('staff_id');
 
             if ($request->filled('order_id')) {
-                $order = ServiceOrder::where('status', 'open')->findOrFail($request->order_id);
+                $order = ServiceOrder::where('status', 'open')->lockForUpdate()->findOrFail($request->order_id);
                 // Clear old items to replace them
                 $order->items()->delete();
             } else {
@@ -85,7 +89,7 @@ class ServiceController extends Controller
 
             $order->customer_name = $request->customer_name;
             $order->customer_phone = $request->customer_phone;
-            $order->vehicle_number = strtoupper($request->vehicle_number);
+            $order->vehicle_number = strtoupper($request->vehicle_number ?? '');
             $order->notes = $request->notes;
             $order->save(); // Save order to get ID
 
@@ -138,33 +142,42 @@ class ServiceController extends Controller
      */
     public function completeOrder(Request $request, ServiceOrder $order)
     {
-        abort_unless($order->status === 'open', 422, 'Fișa nu mai este deschisă.');
-
-        $request->validate([
-            'payment_method' => 'required|in:cash,card,mixed,protocol',
-            'notes' => 'nullable|string|max:1000'
+        $validated = $request->validate([
+            'payment_method' => 'required|in:cash,card,mixed,protocol,client_account',
+            'service_customer_id' => [
+                'exclude_unless:payment_method,client_account', 'required', 'integer',
+                Rule::exists('service_customers', 'id')->where('is_active', true),
+            ],
+            'notes' => 'nullable|string|max:1000',
         ]);
 
-        try {
-            $order->status = 'completed';
-            $order->payment_status = 'paid';
-            $order->payment_method = $request->payment_method;
-            $order->completed_at = now();
-            if ($request->filled('notes')) {
-                $order->notes = ($order->notes ? $order->notes . "\n" : "") . "Plată: " . $request->notes;
+        DB::transaction(function () use ($validated, $order) {
+            $lockedOrder = ServiceOrder::lockForUpdate()->findOrFail($order->id);
+            if ($lockedOrder->status !== 'open') {
+                throw ValidationException::withMessages(['order' => 'Fișa nu mai este deschisă. Reîncărcați lista înainte de a continua.']);
             }
-            $order->save();
+            if (! $lockedOrder->items()->exists()) {
+                throw ValidationException::withMessages(['items' => 'Fișa trebuie să conțină minimum un serviciu.']);
+            }
+            $onAccount = $validated['payment_method'] === 'client_account';
+            $lockedOrder->recalculateTotal();
+            $lockedOrder->service_customer_id = $onAccount ? $validated['service_customer_id'] : null;
+            $lockedOrder->status = 'completed';
+            $lockedOrder->payment_status = $onAccount ? 'unpaid' : 'paid';
+            $lockedOrder->payment_method = $validated['payment_method'];
+            $lockedOrder->completed_at = now();
+            if (! empty($validated['notes'])) {
+                $lockedOrder->notes = ($lockedOrder->notes ? $lockedOrder->notes . "\n" : '') . 'Plată: ' . $validated['notes'];
+            }
+            $lockedOrder->save();
+        }, 3);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Comandă finalizată și achitată cu succes!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Eroare la finalizare: ' . $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => $validated['payment_method'] === 'client_account'
+                ? 'Fișa a fost înregistrată pe contul clientului și așteaptă facturarea.'
+                : 'Comandă finalizată și achitată cu succes!',
+        ]);
     }
 
     /**
@@ -172,23 +185,15 @@ class ServiceController extends Controller
      */
     public function cancelOrder(Request $request, ServiceOrder $order)
     {
-        abort_unless($order->status === 'open', 422, 'Fișa nu mai este deschisă.');
+        DB::transaction(function () use ($order) {
+            $lockedOrder = ServiceOrder::lockForUpdate()->findOrFail($order->id);
+            abort_unless($lockedOrder->status === 'open', 422, 'Fișa nu mai este deschisă.');
+            $lockedOrder->status = 'cancelled';
+            $lockedOrder->payment_status = 'unpaid';
+            $lockedOrder->save();
+        }, 3);
 
-        try {
-            $order->status = 'cancelled';
-            $order->payment_status = 'unpaid';
-            $order->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Comandă anulată cu succes!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Eroare la anulare: ' . $e->getMessage()
-            ], 500);
-        }
+        return response()->json(['success' => true, 'message' => 'Comandă anulată cu succes!']);
     }
 
     /**
@@ -196,82 +201,8 @@ class ServiceController extends Controller
      */
     private function compileDailyReportData($staffId): array
     {
-        $startOfDay = now()->startOfDay();
-        $endOfDay = now()->endOfDay();
-
-        // Total orders today (excluding cancelled)
-        $totalOrdersCount = ServiceOrder::where('staff_member_id', $staffId)
-            ->whereNotIn('status', ['cancelled'])
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->count();
-
-        // Completed/Paid orders today
-        $completedOrdersCount = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->count();
-
-        // Total revenue today
-        $totalRevenue = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->sum('total');
-
-        // Cash revenue today
-        $cashRevenue = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->where('payment_method', 'cash')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->sum('total');
-
-        // Card revenue today
-        $cardRevenue = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->where('payment_method', 'card')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->sum('total');
-
-        // Mixed/Other revenue today
-        $mixedRevenue = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->where('payment_method', 'mixed')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->sum('total');
-
-        // Protocol revenue today
-        $protocolRevenue = ServiceOrder::where('staff_member_id', $staffId)
-            ->where('status', 'completed')
-            ->where('payment_method', 'protocol')
-            ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->sum('total');
-
-        // Services sold today
-        $servicesSold = DB::table('service_order_items')
-            ->join('service_orders', 'service_order_items.service_order_id', '=', 'service_orders.id')
-            ->where('service_orders.staff_member_id', $staffId)
-            ->where('service_orders.status', 'completed')
-            ->whereBetween('service_orders.created_at', [$startOfDay, $endOfDay])
-            ->select(
-                'service_order_items.name',
-                DB::raw('SUM(service_order_items.quantity) as total_qty'),
-                DB::raw('SUM(service_order_items.line_total) as total_value')
-            )
-            ->groupBy('service_order_items.name')
-            ->orderBy('total_qty', 'desc')
-            ->get();
-
-        return [
-            'staff_name' => Session::get('staff_name'),
-            'date' => now()->format('d.m.Y'),
-            'total_orders_count' => $totalOrdersCount,
-            'completed_orders_count' => $completedOrdersCount,
-            'total_revenue' => (float)$totalRevenue,
-            'cash_revenue' => (float)$cashRevenue,
-            'card_revenue' => (float)$cardRevenue,
-            'mixed_revenue' => (float)$mixedRevenue,
-            'protocol_revenue' => (float)$protocolRevenue,
-            'services_sold' => $servicesSold
-        ];
+        return app(\App\Modules\Service\Services\ServiceReportService::class)
+            ->dailyForStaff((int) $staffId, Session::get('staff_name'));
     }
 
     /**

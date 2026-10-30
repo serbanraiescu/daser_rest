@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Orders\Models\Order;
-use App\Modules\Service\Models\ServiceOrder;
+use App\Modules\Service\Services\ServiceReportService;
 use App\Modules\Settings\Models\CompanySetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -174,119 +174,22 @@ class AdminReportController extends Controller
      */
     private function compileServiceReportData(Request $request): array
     {
-        $period = $request->query('period', 'daily');
-        $selectedDate = $request->query('selectedDate', now()->format('Y-m-d'));
-        $startDate = $request->query('startDate', now()->subDays(7)->format('Y-m-d'));
-        $endDate = $request->query('endDate', now()->format('Y-m-d'));
+        abort_unless(CompanySetting::first()?->enable_service_module, 404);
+        $validated = $request->validate([
+            'period' => 'sometimes|in:daily,weekly,monthly,custom',
+            'selectedDate' => 'sometimes|date_format:Y-m-d',
+            'startDate' => 'sometimes|date_format:Y-m-d',
+            'endDate' => 'sometimes|date_format:Y-m-d',
+        ]);
+        $reports = app(ServiceReportService::class);
+        $period = $validated['period'] ?? 'daily';
+        $selectedDate = $validated['selectedDate'] ?? now($reports->timezone())->format('Y-m-d');
+        $startDate = $validated['startDate'] ?? $selectedDate;
+        $endDate = $validated['endDate'] ?? $selectedDate;
+        $range = $reports->range($period, $selectedDate, $startDate, $endDate);
 
-        // Calculate date range
-        $dateRange = $this->getDateRange($period, $selectedDate, $startDate, $endDate);
-        $start = $dateRange['start'];
-        $end = $dateRange['end'];
-
-        // 1. General KPIs
-        $ordersQuery = ServiceOrder::whereBetween('created_at', [$start, $end]);
-        
-        $totalOrders = $ordersQuery->count();
-        $successfulOrders = (clone $ordersQuery)->where('status', 'completed')->count();
-        $cancelledOrders = (clone $ordersQuery)->where('status', 'cancelled')->count();
-        $totalRevenue = (clone $ordersQuery)->where('status', 'completed')->sum('total');
-        $averageValue = $successfulOrders > 0 ? $totalRevenue / $successfulOrders : 0;
-
-        // 2. Service Sales
-        $serviceSales = DB::table('service_order_items')
-            ->join('service_orders', 'service_order_items.service_order_id', '=', 'service_orders.id')
-            ->where('service_orders.status', 'completed')
-            ->whereBetween('service_orders.created_at', [$start, $end])
-            ->select(
-                'service_order_items.name',
-                DB::raw('SUM(service_order_items.quantity) as quantity_sold'),
-                DB::raw('SUM(service_order_items.line_total) as revenue')
-            )
-            ->groupBy('service_order_items.name')
-            ->orderBy('quantity_sold', 'desc')
-            ->get()
-            ->toArray();
-
-        // 3. Detailed History
-        $history = ServiceOrder::with('staff')
-            ->whereBetween('created_at', [$start, $end])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // 4. Staff Performance & Payment Breakdown
-        $staffSalesMap = [];
-        $cashRevenue = 0.0;
-        $cardRevenue = 0.0;
-        $mixedRevenue = 0.0;
-        $protocolRevenue = 0.0;
-        $unpaidRevenue = 0.0;
-
-        foreach ($history as $order) {
-            if ($order->status !== 'completed') {
-                continue;
-            }
-
-            // Pay method breakdown
-            if ($order->payment_method === 'cash') {
-                $cashRevenue += floatval($order->total);
-            } elseif ($order->payment_method === 'card') {
-                $cardRevenue += floatval($order->total);
-            } elseif ($order->payment_method === 'mixed') {
-                $mixedRevenue += floatval($order->total);
-            } elseif ($order->payment_method === 'protocol') {
-                $protocolRevenue += floatval($order->total);
-            } else {
-                $unpaidRevenue += floatval($order->total);
-            }
-
-            // Staff sales map
-            $staffName = $order->staff ? $order->staff->name : 'Nespecificat';
-            if (!isset($staffSalesMap[$staffName])) {
-                $staffSalesMap[$staffName] = (object)[
-                    'staff_name' => $staffName,
-                    'orders_count' => 0,
-                    'total_sales' => 0.0,
-                ];
-            }
-            $staffSalesMap[$staffName]->orders_count++;
-            $staffSalesMap[$staffName]->total_sales += floatval($order->total);
-        }
-
-        // Sort staff desc by sales value
-        usort($staffSalesMap, function ($a, $b) {
-            return $b->total_sales <=> $a->total_sales;
-        });
-
-        $settings = CompanySetting::first() ?? new CompanySetting();
-        $currency = $settings->currency ?? 'RON';
-
-        return [
-            'kpis' => [
-                'total_orders' => $totalOrders,
-                'successful_orders' => $successfulOrders,
-                'cancelled_orders' => $cancelledOrders,
-                'total_revenue' => floatval($totalRevenue),
-                'average_value' => floatval($averageValue),
-                'cash_revenue' => $cashRevenue,
-                'card_revenue' => $cardRevenue,
-                'mixed_revenue' => $mixedRevenue,
-                'protocol_revenue' => $protocolRevenue,
-                'unpaid_revenue' => $unpaidRevenue,
-            ],
-            'services' => $serviceSales,
-            'staff' => $staffSalesMap,
-            'history' => $history,
-            'range_title' => $this->getRangeTitle($start, $end),
-            'settings' => $settings,
-            'currency' => $currency,
-            'period' => $period,
-            'selectedDate' => $selectedDate,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-        ];
+        return $reports->build($range['start'], $range['end']) + compact('period', 'selectedDate', 'startDate', 'endDate');
     }
-
     /**
      * Show service report in standalone print view.
      */

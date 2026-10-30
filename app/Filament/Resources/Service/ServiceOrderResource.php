@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Service;
 use App\Filament\Resources\Service\Pages\ListServiceOrders;
 use App\Filament\Resources\Service\Pages\CreateServiceOrder;
 use App\Filament\Resources\Service\Pages\EditServiceOrder;
+use App\Filament\Resources\Service\Pages\ViewServiceOrder;
+use App\Filament\Resources\Service\Actions\RecordServiceInvoice;
 use App\Modules\Service\Models\ServiceOrder;
 use App\Modules\Service\Models\ServiceItem;
 use App\Modules\Settings\Models\CompanySetting;
@@ -15,6 +17,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Forms\Form;
 use Filament\Tables\Columns\TextColumn;
@@ -24,6 +28,13 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Actions\DeleteBulkAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 
 class ServiceOrderResource extends Resource
 {
@@ -39,6 +50,36 @@ class ServiceOrderResource extends Resource
     public static function canAccess(): bool
     {
         return (bool) (CompanySetting::first()?->enable_service_module ?? false);
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::canAccess();
+    }
+
+    public static function canView(Model $record): bool
+    {
+        return static::canAccess();
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::canAccess();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::canAccess() && ! $record->hasLockedAccount();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::canAccess() && ! $record->hasLockedAccount();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::canAccess();
     }
 
     public static function form(Form $form): Form
@@ -89,10 +130,15 @@ class ServiceOrderResource extends Resource
                         ->required()
                         ->default('open')
                         ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set) {
+                        ->rules([fn (Get $get) => function (string $attribute, $value, $fail) use ($get) {
+                            if ($value === 'completed' && $get('payment_method') === 'client_account') {
+                                $fail('Finalizați fișele pe cont client din terminalul Vulcanizare. Aici le puteți salva deschise.');
+                            }
+                        }])
+                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
                             if ($state === 'completed') {
                                 $set('completed_at', now()->toDateTimeString());
-                                $set('payment_status', 'paid');
+                                $set('payment_status', $get('payment_method') === 'client_account' ? 'unpaid' : 'paid');
                             }
                         }),
                     Select::make('payment_status')
@@ -103,7 +149,9 @@ class ServiceOrderResource extends Resource
                             'partial' => 'Parțială',
                         ])
                         ->required()
-                        ->default('unpaid'),
+                        ->default('unpaid')
+                        ->disabled(fn (Get $get): bool => $get('payment_method') === 'client_account')
+                        ->dehydrated(),
                     Select::make('payment_method')
                         ->label('Metodă Plată')
                         ->options([
@@ -111,9 +159,27 @@ class ServiceOrderResource extends Resource
                             'card' => 'Card',
                             'mixed' => 'Mixtă',
                             'protocol' => 'Încasare Protocol / Protocol',
+                            'client_account' => 'Pe cont client',
                         ])
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            if ($state === 'client_account') {
+                                $set('payment_status', 'unpaid');
+                            } else {
+                                $set('service_customer_id', null);
+                            }
+                        })
                         ->nullable(),
                 ]),
+
+                Select::make('service_customer_id')
+                    ->label('Client pentru facturare')
+                    ->relationship('customer', 'name', fn (Builder $query) => $query->where('is_active', true))
+                    ->searchable()->preload()
+                    ->visible(fn (Get $get): bool => $get('payment_method') === 'client_account')
+                    ->required(fn (Get $get): bool => $get('payment_method') === 'client_account')
+                    ->rules([Rule::exists('service_customers', 'id')->where('is_active', true)])
+                    ->helperText('Finalizarea pe cont client se face din terminalul operatorului. Fișele finalizate sunt păstrate în evidență și nu mai pot fi editate sau șterse.'),
 
                 Textarea::make('notes')
                     ->label('Notițe / Observații')
@@ -217,23 +283,44 @@ class ServiceOrderResource extends Resource
                 TextColumn::make('payment_method')
                     ->label('Metodă Plată')
                     ->badge()
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'cash' => 'Numerar', 'card' => 'Card', 'mixed' => 'Mixtă',
+                        'protocol' => 'Protocol', 'client_account' => 'Pe cont client', default => '—',
+                    })
                     ->color('gray')
                     ->sortable(),
+                TextColumn::make('invoice.number')
+                    ->label('Factură')
+                    ->searchable()
+                    ->placeholder(fn (ServiceOrder $record): string => $record->status === 'completed' && $record->payment_method === 'client_account' ? 'De facturat' : '—')
+                    ->url(fn (ServiceOrder $record): ?string => $record->service_invoice_id
+                        ? ServiceInvoiceResource::getUrl('view', ['record' => $record->service_invoice_id]) : null),
                 TextColumn::make('completed_at')
                     ->label('Finalizată la')
                     ->dateTime('d.m.Y H:i')
                     ->sortable(),
             ])
             ->filters([
-                //
+                Filter::make('uninvoiced')->label('De facturat')->query(fn (Builder $query): Builder => $query->uninvoiced()),
+                Filter::make('invoiced')->label('Facturate')->query(fn (Builder $query): Builder => $query->whereNotNull('service_invoice_id')),
+                SelectFilter::make('service_customer_id')->label('Client')->relationship('customer', 'name')->searchable()->preload(),
             ])
             ->actions([
+                ViewAction::make(),
+                RecordServiceInvoice::single(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    RecordServiceInvoice::bulk(),
+                    DeleteBulkAction::make()->before(function (Collection $records, DeleteBulkAction $action): void {
+                        abort_unless(static::canAccess(), 403);
+                        if ($records->contains(fn (ServiceOrder $record): bool => ! static::canDelete($record))) {
+                            Notification::make()->title('Fișele finalizate pe cont client nu pot fi șterse.')->danger()->send();
+                            $action->halt();
+                        }
+                    }),
                 ]),
             ]);
     }
@@ -244,6 +331,7 @@ class ServiceOrderResource extends Resource
             'index' => ListServiceOrders::route('/'),
             'create' => CreateServiceOrder::route('/create'),
             'edit' => EditServiceOrder::route('/{record}/edit'),
+            'view' => ViewServiceOrder::route('/{record}'),
         ];
     }
 }
