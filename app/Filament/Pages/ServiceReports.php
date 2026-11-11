@@ -25,6 +25,7 @@ class ServiceReports extends Page
     public ?array $selectedServiceOrderItems = null;
     public ?string $selectedVehicleNumber = null;
     public ?int $selectedOrderId = null;
+    public ?float $selectedOrderTotal = null;
     public bool $showServiceOrderModal = false;
 
     public static function canAccess(): bool
@@ -45,6 +46,7 @@ class ServiceReports extends Page
         $order = ServiceOrder::with('items')->find($orderId);
         if ($order) {
             $this->selectedOrderId = $order->id;
+            $this->selectedOrderTotal = $order->total;
             $this->selectedVehicleNumber = $order->vehicle_number ?: 'Nespecificat';
             $this->selectedServiceOrderItems = $order->items->toArray();
             $this->showServiceOrderModal = true;
@@ -57,6 +59,7 @@ class ServiceReports extends Page
         $this->selectedServiceOrderItems = null;
         $this->selectedVehicleNumber = null;
         $this->selectedOrderId = null;
+        $this->selectedOrderTotal = null;
     }
 
     public function getReportData(): array

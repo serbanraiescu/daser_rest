@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Service\Models\ServiceInvoice;
+use App\Modules\Service\Models\ServiceItem;
 use App\Modules\Service\Models\ServiceOrder;
 use App\Modules\Service\Services\ServiceBillingService;
 use App\Modules\Settings\Models\CompanySetting;
@@ -87,6 +88,31 @@ class ServiceAccountBillingTest extends ServiceTestCase
             'vehicle_number' => 'test-02',
             'items' => [['service_item_id' => $item->id, 'quantity' => 2, 'unit_price' => 0.01]],
         ])->assertOk()->assertJsonPath('order.total', 251);
+    }
+
+    public function test_fractional_quantities_keep_line_precision_and_invalid_updates_preserve_the_sheet(): void
+    {
+        $hourly = ServiceItem::create(['name' => 'Manoperă', 'price' => '4.01', 'unit' => 'oră', 'is_active' => true]);
+        $response = $this->asServiceOperator()->postJson('/service/orders', [
+            'items' => [['service_item_id' => $hourly->id, 'quantity' => '2.50']],
+        ])->assertOk()->assertJsonPath('order.total', 10.03);
+        $orderId = $response->json('order.id');
+        foreach (['0', '0.005', '1.234', '100000000', '25000000'] as $invalid) {
+            $this->asServiceOperator()->postJson('/service/orders', [
+                'order_id' => $orderId, 'items' => [['service_item_id' => $hourly->id, 'quantity' => $invalid]],
+            ])->assertUnprocessable()->assertJsonValidationErrors('items.0.quantity');
+        }
+        $this->assertDatabaseHas('service_order_items', [
+            'service_order_id' => $orderId, 'unit' => 'oră', 'quantity' => 2.5, 'line_total' => 10.03,
+        ]);
+        $this->asServiceOperator()->postJson('/service/orders', [
+            'order_id' => $orderId, 'items' => [
+                ['service_item_id' => $hourly->id, 'quantity' => 20000000],
+                ['service_item_id' => $hourly->id, 'quantity' => 20000000],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors('items.1.quantity');
+        $this->assertDatabaseHas('service_orders', ['id' => $orderId, 'total' => 10.03]);
+        $this->assertDatabaseCount('service_order_items', 1);
     }
 
     public function test_one_invoice_can_cover_selected_works_of_one_customer_and_keeps_its_actual_amount(): void

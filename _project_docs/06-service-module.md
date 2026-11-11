@@ -4,7 +4,7 @@
 
 Modulul `Service` este implementat ca terminal simplificat pentru vulcanizare și spălătorie auto. El are catalog, fișe de lucru, încasare și rapoarte proprii și nu folosește comenzile restaurantului.
 
-Stare la 30 octombrie 2026: **implementat în cod**, inclusiv ierarhia categorie–subcategorie, catalogul inițial primit de la client, terminalul operatorului, conturile clienților și evidența facturilor emise extern. Aplicarea migrării și configurarea API-ului pe instalările clienților sunt operații de deployment separate.
+Stare la 11 noiembrie 2026. Sunt implementate ierarhia categorie–subcategorie, catalogul clientului cu extinderea din noiembrie, introducerea suprafețelor pentru covoare, reluarea fișei salvate după refresh, conturile clienților și evidența facturilor emise extern. Aplicarea migrărilor și configurarea API-ului pe instalările clienților sunt operații de deployment separate.
 
 ## Activare și acces
 
@@ -50,7 +50,7 @@ Din 30 octombrie, `service_customer_id` leagă fișa de registrul de clienți, i
 
 ### `service_order_items`
 
-Poziția păstrează snapshot-ul denumirii, unității și prețului. `line_total` este recalculat la salvare, iar comanda își recalculează totalul după salvarea sau ștergerea unei poziții.
+Poziția păstrează snapshot-ul denumirii, unității și prețului. `line_total` este recalculat și rotunjit la bani la salvare, iar comanda își recalculează totalul după salvarea sau ștergerea unei poziții. Cantitatea și prețul au maximum două zecimale. Terminalul și modelul folosesc aceeași rotunjire pentru cantitățile fracționare.
 
 Migrații:
 
@@ -72,6 +72,28 @@ Migrații:
 
 Datele sunt introduse cu `updateOrInsert`, pe slug/categorie și denumirea serviciului. Rularea migrării pe o instalare existentă nu dublează catalogul seeduit.
 
+### Extinderea din noiembrie 2026
+
+Migrarea `2026_11_11_100000_extend_vulcanizare_and_carpet_catalog.php` adaugă următoarele poziții.
+
+| Categorie | Serviciu | Tarif |
+|---|---|---|
+| Vulcanizare → Autoturisme | Demontat + montat + echilibrat SUV-4x4 | 50 lei/buc. |
+| Vulcanizare → Autoturisme | Curățat jantă | 10 lei/buc. |
+| Vulcanizare → Autoturisme | ANVELOPE SH 50 | 50 lei/buc. |
+| Vulcanizare → Autoturisme | ANVELOPE SH 70 | 70 lei/buc. |
+| Vulcanizare → Autoturisme | ANVELOPE SH 100 | 100 lei/buc. |
+| Spălătorie → Covoare | Covoare MP 5 | 5 lei/m² |
+| Spălătorie → Covoare | Covoare MP 10 | 10 lei/m² |
+| Spălătorie → Covoare | Covoare MP 50 | 50 lei/m² |
+| Spălătorie → Covoare | Covoare MP 100 | 100 lei/m² |
+
+SUV-4x4 este încadrat la Autoturisme. Covoarele primesc o subcategorie proprie, cu slug `spalatorie-covoare`. Cele patru tarife sunt poziții distincte selectabile. Operatorul alege tariful și introduce suprafața, de exemplu `2,50` m² la 5 lei/m² produce 12,50 lei.
+
+Migrarea este aditivă și tranzacțională. Refolosește categoria identificată prin slug sau prin numele de sub același părinte, introduce numai serviciile lipsă după categorie și denumire și le ordonează după cele existente. Păstrează prețul, descrierea, starea activă și ordinea unui serviciu deja creat cu același nume în categoria țintă. Reexecutarea păstrează aceleași date, iar rollback-ul păstrează catalogul operațional. Fișele existente își păstrează snapshot-urile. Extinderea folosește schema existentă.
+
+Aplicarea se face prin `Admin → Configurare Platformă → Actualizează din Git și aplică`, sau prin `Aplică actualizarea` după ce codul a fost actualizat separat. Același cod și migrările pot fi instalate la aBistro. Vizibilitatea modulului și API-ului respectă setarea `enable_service_module` a fiecărei instalări.
+
 ## Interfața operatorului
 
 View: `resources/views/service/index.blade.php`.
@@ -82,7 +104,9 @@ Principii implementate:
 - subcategorii mari și ușor de apăsat;
 - serviciile apar ca butoane cu denumire și preț;
 - apăsarea repetată mărește cantitatea;
-- coșul are numai butoane mari `+` și `−`;
+- coșul are butoane mari `+` și `−` pentru pozițiile obișnuite;
+- pozițiile cu unitatea `m²` afișează câmpul „Suprafață (m²)” și acțiunea „Elimină”, iar alegerea tarifului afișează lei/m²;
+- suprafața acceptă separatorul virgulă sau punct și cel mult două zecimale; valorile invalide blochează salvarea și deschiderea încasării și afișează o eroare;
 - numărul mașinii este vizibil, dar opțional;
 - numele, telefonul și observațiile sunt ascunse sub „Detalii client (opțional)”;
 - acțiunea principală este butonul verde `ÎNCASEAZĂ`;
@@ -93,13 +117,23 @@ Principii implementate:
 
 Datele și regulile sunt încărcate de controller și modele. View-ul nu interoghează baza de date și nu leagă schema de tema vizuală.
 
+### Reluarea fișei după refresh
+
+După salvarea sau selectarea unei fișe deschise, terminalul păstrează ID-ul ei în adresa paginii (`/service?order=ID`), separat pentru fiecare tab. La refresh reia exclusiv acea fișă din lista de fișe încă deschise pregătită de controller; nu creează un rând nou și nu alege automat altă fișă. O referință către o fișă închisă, anulată sau inexistentă este eliminată din adresă.
+
+„Lasă deschisă” salvează și păstrează fișa curentă pentru continuare. „Fișă nouă” golește explicit formularul și referința din adresă, păstrând fișa anterioară în lista deschiselor. Finalizarea/anularea elimină referința numai după confirmarea serverului; erorile o păstrează pentru retry. Lista locală de fișe deschise se actualizează imediat după salvare. Schimbarea fișei este blocată cât timp se execută o cerere de salvare/plată/anulare.
+
+Se reia **ultima versiune salvată în baza de date**. Nu există autosalvare a modificărilor locale sau garanție de reluare dacă prima salvare este întreruptă înainte să ajungă răspunsul cu ID-ul. Fișele create înainte de această corecție se reiau o dată din „Fișe deschise”; după selectare adresa păstrează ID-ul. Nu sunt necesare migrare nouă, configurare suplimentară sau modificări în admin pentru această corecție.
+
 ## Validare și reguli server-side
 
 - este necesară minimum o poziție;
 - serviciul trebuie să existe și să fie activ;
-- cantitatea trebuie să fie numerică și pozitivă;
+- cantitatea trebuie să fie numerică, între 0,01 și 99.999.999,99, cu maximum două zecimale; validarea se aplică și cererilor trimise direct către server;
+- valoarea unei poziții și totalul fișei trebuie să se încadreze în limita de 99.999.999,99 lei a coloanelor `DECIMAL(10,2)`; depășirea întoarce HTTP 422 înainte de înlocuirea pozițiilor existente;
 - prețul trimis de browser nu este acceptat;
 - denumirea, unitatea și prețul sunt recitite din `service_items`;
+- la salvarea unei fișe deschise se aplică tarifele curente din catalog, inclusiv la reluarea unui draft vechi; după succes terminalul preia pozițiile confirmate de server, astfel încât modalul de încasare afișează valoarea salvată. Coșul este blocat pe durata cererii, iar un eșec păstrează datele introduse;
 - numai fișele cu status `open` pot fi modificate, finalizate sau anulate prin terminal; operațiile recitesc și blochează rândul în tranzacție;
 - finalizarea obișnuită setează `completed`, `paid`, metoda de plată și `completed_at`;
 - finalizarea pe cont client cere un client activ existent, copiază numele/telefonul acestuia și setează `completed`, `unpaid`, `client_account`, clientul și `completed_at`;
@@ -142,6 +176,8 @@ Valoarea lucrărilor finalizate este separată de încasări. Încasările inclu
 
 API-ul zilnic/lunar și configurarea n8n sunt descrise în [21-api-rapoarte-n8n.md](21-api-rapoarte-n8n.md). Trimiterea efectivă a e-mailurilor și programarea workflow-urilor n8n rămân de configurat; nu sunt active automat după instalarea codului.
 
+Serviciile prestate sunt grupate după denumire și unitatea salvată pe fișă. Aceeași denumire cu unități diferite produce rânduri distincte, pentru a păstra cantitățile în m² și bucăți. Unitatea apare în agregatele API, raportul admin și printurile admin/operator. Detaliile unei fișe din raportul admin afișează `line_total` și totalul salvate, cu aceeași rotunjire ca în fișă.
+
 ## Verificare automată
 
 Verificat local cu PHP 8.4, folosind SQLite în memorie și întregul istoric real de migrări. Datele configurate în `.env` nu sunt folosite sau resetate de testele modulului.
@@ -151,11 +187,19 @@ php -d extension=pdo_sqlite -d extension=intl vendor/bin/phpunit tests/Feature/S
 node --test tests/Frontend/service-desk.test.cjs
 ```
 
-Rezultat: **28 teste PHP, 182 aserțiuni și 3 teste JavaScript trecute**. Sunt acoperite finalizarea pe cont, validarea clienților, facturarea individuală/colectivă în Livewire, refuzul dublării sau amestecării clienților, drepturile de acces, protejarea evidenței, rutele și ecranele admin/operator, totalurile API, limitele de zi din România și retry-ul terminalului fără duplicarea fișei. Verificarea de sintaxă PHP a trecut pentru cele 33 de fișiere PHP noi/modificate.
+Rezultatul implementării inițiale: **28 teste PHP, 182 aserțiuni și 3 teste JavaScript trecute**. Sunt acoperite finalizarea pe cont, validarea clienților, facturarea individuală/colectivă în Livewire, refuzul dublării sau amestecării clienților, drepturile de acces, protejarea evidenței, rutele și ecranele admin/operator, totalurile API, limitele de zi din România și retry-ul terminalului fără duplicarea fișei. Verificarea de sintaxă PHP a trecut pentru cele 33 de fișiere PHP noi/modificate.
+
+Corecția pentru refresh adaugă patru teste JavaScript: reluare și salvare pe același ID, izolare pe tab și refuzul referințelor vechi, păstrarea referinței la erori și eliminarea ei numai după succes, respectiv blocarea schimbării fișei în timpul unei cereri. **Toate cele 7 teste JavaScript trec.**
+
+Extinderea din noiembrie este verificată prin 12 teste JavaScript pentru terminal și 32 teste PHP cu 238 aserțiuni pentru catalog, facturare, rapoarte și administrarea fișelor. Sunt incluse introducerea `2,50`/`2.50` m², calculul `2,50 × 5 = 12,50`, rotunjirea `2,50 × 4,01 = 10,03`, respingerea valorilor invalide și a depășirilor cu păstrarea fișei, reexecutarea migrării peste un catalog personalizat, snapshot-urile istorice și agregarea după unitate. Testele terminalului acoperă și sincronizarea tarifului confirmat de server, păstrarea coșului la erori și blocarea editării în timpul salvării. Randarea terminalului și a rapoartelor este verificată prin HTTP/Blade. Configurarea API-ului are verificări suplimentare documentate în documentul 21.
 
 Nu a fost efectuat un test concurent pe MySQL/MariaDB și nu a fost actualizată baza de date a clienților. Blocarea de rânduri este implementată în tranzacții pentru mediul de producție; testele SQLite verifică rezultatele și validările, fără să reproducă blocările MySQL.
 
 ## Istoric modificări
+
+- **2026-11-11** — adăugate cele nouă tarife cerute, subcategoria Covoare și introducerea suprafeței cu virgulă sau punct. Documentate migrarea aditivă, rotunjirea la bani, sincronizarea tarifului la salvare și agregarea rapoartelor după denumire și unitate.
+
+- **2026-10-30** — corectată pierderea fișei active la refresh: ID păstrat în URL, reluare numai pentru fișe deschise, listă actualizată la salvare și protecție la schimbarea fișei în timpul cererilor.
 
 - **2026-10-30** — adăugate conturile clienților, pop-up-ul de selecție, registrul de clienți, dashboardul nefacturatelor și evidența facturilor grupate pe client.
 - **2026-10-30** — separate finalizarea, facturarea și încasarea; protejate fișele pe cont și selecțiile de facturare împotriva modificării/dublării.

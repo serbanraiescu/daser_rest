@@ -224,7 +224,7 @@
                             @forelse($services as $srv)
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td class="px-6 py-3 font-semibold text-gray-880 dark:text-gray-200">{{ $srv->name }}</td>
-                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $srv->quantity_sold }}</td>
+                                    <td class="px-6 py-3 text-center text-gray-900 dark:text-white font-bold">{{ $srv->quantity_sold }} {{ $srv->unit }}</td>
                                     <td class="px-6 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{{ number_format($srv->revenue, 2) }} {{ $currency }}</td>
                                 </tr>
                             @empty
@@ -469,12 +469,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                @php $modalTotal = 0; @endphp
                                 @foreach($selectedServiceOrderItems as $item)
-                                    @php 
-                                        $subtotal = $item['unit_price'] * $item['quantity'];
-                                        $modalTotal += $subtotal;
-                                    @endphp
                                     <tr class="hover:bg-gray-50/30 transition-colors">
                                         <td class="px-6 py-4">
                                             <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $item['name'] }}</p>
@@ -484,10 +479,10 @@
                                                 </p>
                                             @endif
                                         </td>
-                                        <td class="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">{{ $item['quantity'] }}</td>
+                                        <td class="px-6 py-4 text-center font-bold text-gray-900 dark:text-white">{{ $item['quantity'] }} {{ $item['unit'] }}</td>
                                         <td class="px-6 py-4 text-right">{{ number_format($item['unit_price'], 2) }} {{ $currency }}</td>
                                         <td class="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
-                                            {{ number_format($subtotal, 2) }} {{ $currency }}
+                                            {{ number_format($item['line_total'], 2) }} {{ $currency }}
                                         </td>
                                     </tr>
                                 @endforeach
@@ -500,7 +495,7 @@
                 <div class="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
                     <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Fișă Servicii</p>
                     <p class="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                        {{ number_format($modalTotal, 2) }} {{ $currency }}
+                        {{ number_format($selectedOrderTotal, 2) }} {{ $currency }}
                     </p>
                 </div>
 

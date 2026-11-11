@@ -67,12 +67,33 @@ class ServiceController extends Controller
                 'required',
                 Rule::exists('service_items', 'id')->where('is_active', true),
             ],
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => 'required|numeric|decimal:0,2|min:0.01|max:99999999.99',
             'items.*.notes' => 'nullable|string|max:500',
         ]);
 
         try {
             DB::beginTransaction();
+
+            $lines = [];
+            $totalCents = 0;
+            foreach ($validated['items'] as $index => $itemData) {
+                $serviceItem = ServiceItem::where('is_active', true)->findOrFail($itemData['service_item_id']);
+                $lineTotal = ServiceOrderItem::calculateLineTotal((float) $itemData['quantity'], $serviceItem->price);
+                $totalCents += (int) round($lineTotal * 100);
+                if ($lineTotal > 99999999.99 || $totalCents > 9999999999) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.quantity" => 'Cantitatea depășește suma maximă permisă pe fișă (99.999.999,99 lei).',
+                    ]);
+                }
+                $lines[] = [
+                    'service_item_id' => $serviceItem->id,
+                    'name' => $serviceItem->name,
+                    'unit' => $serviceItem->unit,
+                    'quantity' => $itemData['quantity'],
+                    'unit_price' => $serviceItem->price,
+                    'notes' => $itemData['notes'] ?? null,
+                ];
+            }
 
             $staffId = Session::get('staff_id');
 
@@ -94,17 +115,8 @@ class ServiceController extends Controller
             $order->save(); // Save order to get ID
 
             // Add new items
-            foreach ($request->items as $itemData) {
-                $serviceItem = ServiceItem::where('is_active', true)->findOrFail($itemData['service_item_id']);
-                
-                $order->items()->create([
-                    'service_item_id' => $serviceItem->id,
-                    'name' => $serviceItem->name,
-                    'unit' => $serviceItem->unit,
-                    'quantity' => $itemData['quantity'],
-                    'unit_price' => $serviceItem->price,
-                    'notes' => $itemData['notes'] ?? null,
-                ]);
+            foreach ($lines as $line) {
+                $order->items()->create($line);
             }
 
             // Recalculate total
@@ -118,6 +130,9 @@ class ServiceController extends Controller
                 'order' => $order->load('items')
             ]);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

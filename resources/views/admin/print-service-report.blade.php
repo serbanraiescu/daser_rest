@@ -313,7 +313,7 @@
                         @forelse(array_slice($services, 0, 8) as $srv)
                             <tr>
                                 <td class="bold">{{ $srv->name }}</td>
-                                <td class="text-center font-bold">{{ $srv->quantity_sold }}</td>
+                                <td class="text-center font-bold">{{ $srv->quantity_sold }} {{ $srv->unit }}</td>
                                 <td class="text-right text-success bold">{{ number_format($srv->revenue, 2) }}</td>
                             </tr>
                         @empty

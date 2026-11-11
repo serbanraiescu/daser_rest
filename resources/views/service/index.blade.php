@@ -10,7 +10,19 @@ function serviceDesk(categories, openOrders, customers) {
         paymentMethod: 'cash', paymentNotes: '', busy: false,
         customers, serviceCustomerId: null, customerSearch: '', showCustomerModal: false,
 
-        init() { if (this.categories.length) this.selectRoot(this.categories[0].id); },
+        init() {
+            if (this.categories.length) this.selectRoot(this.categories[0].id);
+            const activeOrderId = new URL(window.location.href).searchParams.get('order');
+            const activeOrder = this.openOrders.find(order => String(order.id) === activeOrderId);
+            if (activeOrder) this.loadOrder(activeOrder);
+            else if (activeOrderId !== null) this.rememberOrder(null);
+        },
+        rememberOrder(orderId) {
+            const url = new URL(window.location.href);
+            if (orderId) url.searchParams.set('order', String(orderId));
+            else url.searchParams.delete('order');
+            window.history.replaceState(window.history.state, '', url.href);
+        },
         activeRoot() { return this.categories.find(category => category.id === this.activeRootId) ?? null; },
         subcategories() { return this.activeRoot()?.children ?? []; },
         visibleItems() {
@@ -24,20 +36,36 @@ function serviceDesk(categories, openOrders, customers) {
             this.activeSubcategoryId = this.activeRoot()?.children?.[0]?.id ?? null;
         },
         addToCart(item) {
+            if (this.busy) return;
             const existing = this.cart.find(line => line.service_item_id === item.id);
-            if (existing) existing.quantity = Number(existing.quantity) + 1;
+            if (existing) this.changeQuantity(item.id, 1);
             else this.cart.push({
                 service_item_id: item.id, name: item.name, unit_price: Number(item.price),
                 quantity: 1, unit: item.unit || 'buc.', notes: '',
             });
         },
         changeQuantity(itemId, amount) {
+            if (this.busy) return;
             const line = this.cart.find(item => item.service_item_id === itemId);
             if (!line) return;
-            line.quantity = Number(line.quantity) + amount;
-            if (line.quantity <= 0) this.cart = this.cart.filter(item => item.service_item_id !== itemId);
+            const quantity = this.quantityOf(line);
+            if (quantity === null) return;
+            const nextQuantity = (Math.round(quantity * 100) + amount * 100) / 100;
+            if (nextQuantity <= 0) this.cart = this.cart.filter(item => item.service_item_id !== itemId);
+            else if (nextQuantity <= 99999999.99) line.quantity = nextQuantity;
         },
-        total() { return this.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0); },
+        quantityOf(item) {
+            const text = String(item.quantity).trim().replace(',', '.');
+            if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
+            const quantity = Number(text);
+            return quantity >= 0.01 && quantity <= 99999999.99 ? quantity : null;
+        },
+        lineCents(item) {
+            const priceCents = Math.round(Number(item.unit_price) * 100);
+            const hundredths = Math.round((this.quantityOf(item) ?? 0) * 100);
+            return Math.round(priceCents * hundredths / 100);
+        },
+        total() { return this.cart.reduce((sum, item) => sum + this.lineCents(item), 0) / 100; },
         selectedCustomer() { return this.customers.find(customer => customer.id === this.serviceCustomerId) ?? null; },
         filteredCustomers() {
             const search = this.customerSearch.trim().toLocaleLowerCase('ro-RO');
@@ -59,14 +87,18 @@ function serviceDesk(categories, openOrders, customers) {
             this.showPaymentModal = true;
         },
         clearForm() {
+            if (this.busy) return;
+            this.rememberOrder(null);
             this.orderId = null; this.cart = []; this.vehicleNumber = ''; this.customerName = '';
             this.customerPhone = ''; this.notes = ''; this.paymentNotes = ''; this.showDetails = false;
             this.paymentMethod = 'cash'; this.serviceCustomerId = null;
             this.showCustomerModal = false; this.showPaymentModal = false;
         },
         loadOrder(order) {
+            if (this.busy) return;
             this.clearForm();
             this.orderId = order.id; this.vehicleNumber = order.vehicle_number || '';
+            this.rememberOrder(this.orderId);
             this.paymentMethod = order.payment_method || 'cash'; this.serviceCustomerId = order.service_customer_id || null;
             this.customerName = order.customer_name || ''; this.customerPhone = order.customer_phone || '';
             this.notes = order.notes || ''; this.showDetails = Boolean(this.customerName || this.customerPhone || this.notes);
@@ -84,6 +116,16 @@ function serviceDesk(categories, openOrders, customers) {
         },
         async saveOrder(openPayment = false) {
             if (!this.cart.length || this.busy) return;
+            if (this.cart.some(item => this.quantityOf(item) === null)) {
+                this.showMobileCart = true;
+                alert('Verifică valorile din fișă. Cantitatea trebuie să fie pozitivă, cu cel mult două zecimale.');
+                return;
+            }
+            if (this.total() > 99999999.99) {
+                this.showMobileCart = true;
+                alert('Totalul fișei depășește suma maximă permisă (99.999.999,99 lei). Verifică suprafețele și cantitățile.');
+                return;
+            }
             this.busy = true;
             try {
                 const data = await this.request('{{ route('service.orders.store') }}', {
@@ -92,10 +134,16 @@ function serviceDesk(categories, openOrders, customers) {
                     body: JSON.stringify({
                         order_id: this.orderId, vehicle_number: this.vehicleNumber, customer_name: this.customerName,
                         customer_phone: this.customerPhone, notes: this.notes,
-                        items: this.cart.map(item => ({service_item_id: item.service_item_id, quantity: item.quantity, notes: item.notes})),
+                        items: this.cart.map(item => ({service_item_id: item.service_item_id, quantity: this.quantityOf(item), notes: item.notes})),
                     }),
                 });
+                this.cart = data.order.items.map(item => ({
+                    service_item_id: item.service_item_id, name: item.name, unit_price: Number(item.unit_price),
+                    quantity: Number(item.quantity), unit: item.unit || 'buc.', notes: item.notes || '',
+                }));
                 this.orderId = data.order.id;
+                this.rememberOrder(this.orderId);
+                this.openOrders = [data.order, ...this.openOrders.filter(order => order.id !== data.order.id)];
                 if (openPayment) this.showPaymentModal = true;
                 else window.location.reload();
             } catch (error) { alert(error.message); }
@@ -117,6 +165,7 @@ function serviceDesk(categories, openOrders, customers) {
                         service_customer_id: this.paymentMethod === 'client_account' ? this.serviceCustomerId : null,
                     }),
                 });
+                this.rememberOrder(null);
                 window.location.reload();
             } catch (error) { alert(error.message); }
             finally { this.busy = false; }
@@ -128,6 +177,7 @@ function serviceDesk(categories, openOrders, customers) {
                 await this.request(`/service/orders/${this.orderId}/cancel`, {
                     method: 'POST', headers: {'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content},
                 });
+                this.rememberOrder(null);
                 window.location.reload();
             } catch (error) { alert(error.message); }
             finally { this.busy = false; }
@@ -160,7 +210,7 @@ function serviceDesk(categories, openOrders, customers) {
         </div>
         <div class="space-y-2">
             <template x-for="order in openOrders" :key="order.id">
-                <button type="button" @click="loadOrder(order)" class="flex w-full items-center justify-between rounded-xl border-2 border-slate-200 p-4 text-left active:border-blue-500">
+                <button type="button" @click="loadOrder(order)" :disabled="busy" class="flex w-full items-center justify-between rounded-xl border-2 border-slate-200 p-4 text-left active:border-blue-500 disabled:opacity-50">
                     <span><strong class="block text-lg" x-text="order.vehicle_number || 'Fără număr auto'"></strong><small class="text-slate-500" x-text="order.customer_name || 'Client ocazional'"></small></span>
                     <strong class="text-lg"><span x-text="Number(order.total).toFixed(2)"></span> lei</strong>
                 </button>
@@ -185,9 +235,9 @@ function serviceDesk(categories, openOrders, customers) {
 
             <div class="mt-2 grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto pb-28 sm:grid-cols-3 xl:grid-cols-4 lg:pb-4">
                 <template x-for="item in visibleItems()" :key="item.id">
-                    <button type="button" @click="addToCart(item)" class="flex min-h-32 flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition active:scale-95 active:border-emerald-500 active:bg-emerald-50">
+                    <button type="button" @click="addToCart(item)" :disabled="busy" class="flex min-h-32 flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition active:scale-95 active:border-emerald-500 active:bg-emerald-50 disabled:opacity-50">
                         <strong class="text-base leading-tight" x-text="item.name"></strong>
-                        <span class="mt-3 text-right text-2xl font-black text-emerald-700"><span x-text="Number(item.price).toLocaleString('ro-RO', {maximumFractionDigits: 2})"></span> lei</span>
+                        <span class="mt-3 text-right text-2xl font-black text-emerald-700"><span x-text="Number(item.price).toLocaleString('ro-RO', {maximumFractionDigits: 2})"></span> <span x-text="item.unit === 'm²' ? 'lei/m²' : 'lei'"></span></span>
                     </button>
                 </template>
                 <p x-show="!visibleItems().length" class="col-span-full py-10 text-center text-lg font-bold text-slate-500">Nu sunt servicii active aici.</p>
@@ -199,7 +249,7 @@ function serviceDesk(categories, openOrders, customers) {
         <aside class="fixed inset-y-0 right-0 z-40 flex w-[92vw] max-w-[440px] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform lg:static lg:w-[430px] lg:translate-x-0" :class="showMobileCart ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'">
             <div class="flex items-center justify-between border-b border-slate-200 p-4">
                 <div><h2 class="text-xl font-black" x-text="orderId ? 'Fișa #' + orderId : 'Fișă nouă'"></h2><p class="text-sm font-bold text-slate-500">Apasă serviciile din listă</p></div>
-                <div class="flex gap-2"><button @click="clearForm()" class="rounded-xl bg-slate-100 px-3 py-3 text-sm font-black">Fișă nouă</button><button @click="showMobileCart = false" class="rounded-xl bg-slate-800 px-3 py-3 font-black text-white lg:hidden">×</button></div>
+                <div class="flex gap-2"><button @click="clearForm()" :disabled="busy" class="rounded-xl bg-slate-100 px-3 py-3 text-sm font-black disabled:opacity-50">Fișă nouă</button><button @click="showMobileCart = false" class="rounded-xl bg-slate-800 px-3 py-3 font-black text-white lg:hidden">×</button></div>
             </div>
 
             <div class="border-b border-slate-200 p-4">
@@ -216,8 +266,21 @@ function serviceDesk(categories, openOrders, customers) {
             <div class="flex-1 space-y-2 overflow-y-auto p-4">
                 <template x-for="item in cart" :key="item.service_item_id">
                     <div class="rounded-xl border-2 border-slate-200 p-3">
-                        <div class="flex justify-between gap-3"><strong class="leading-tight" x-text="item.name"></strong><strong class="whitespace-nowrap"><span x-text="(item.unit_price * item.quantity).toFixed(2)"></span> lei</strong></div>
-                        <div class="mt-3 flex items-center justify-end gap-2"><button @click="changeQuantity(item.service_item_id, -1)" class="h-12 w-12 rounded-xl bg-red-100 text-2xl font-black text-red-700">−</button><span class="min-w-10 text-center text-xl font-black" x-text="item.quantity"></span><button @click="changeQuantity(item.service_item_id, 1)" class="h-12 w-12 rounded-xl bg-emerald-100 text-2xl font-black text-emerald-700">+</button></div>
+                        <div class="flex justify-between gap-3"><strong class="leading-tight" x-text="item.name"></strong><strong class="whitespace-nowrap"><span x-text="(lineCents(item) / 100).toFixed(2)"></span> lei</strong></div>
+                        <template x-if="item.unit === 'm²'">
+                            <div class="mt-3">
+                                <div class="flex items-end justify-between gap-2">
+                                    <label class="text-sm font-bold">Suprafață (m²)
+                                        <input type="text" inputmode="decimal" x-model="item.quantity" :disabled="busy" @focus="$event.target.select()" :aria-invalid="quantityOf(item) === null" class="mt-1 block w-28 rounded-xl border-2 border-slate-300 px-3 py-2 text-lg font-bold disabled:opacity-50">
+                                    </label>
+                                    <button type="button" @click="cart = cart.filter(line => line.service_item_id !== item.service_item_id)" :disabled="busy" class="rounded-xl bg-red-100 px-3 py-3 font-bold text-red-700 disabled:opacity-50">Elimină</button>
+                                </div>
+                                <p x-show="quantityOf(item) === null" class="mt-1 text-sm text-red-700">Introdu o suprafață pozitivă cu maximum două zecimale.</p>
+                            </div>
+                        </template>
+                        <template x-if="item.unit !== 'm²'">
+                            <div class="mt-3 flex items-center justify-end gap-2"><button @click="changeQuantity(item.service_item_id, -1)" :disabled="busy" class="h-12 w-12 rounded-xl bg-red-100 text-2xl font-black text-red-700 disabled:opacity-50">−</button><span class="min-w-10 text-center text-xl font-black" x-text="item.quantity"></span><button @click="changeQuantity(item.service_item_id, 1)" :disabled="busy" class="h-12 w-12 rounded-xl bg-emerald-100 text-2xl font-black text-emerald-700 disabled:opacity-50">+</button></div>
+                        </template>
                     </div>
                 </template>
                 <div x-show="!cart.length" class="py-16 text-center text-lg font-black text-slate-400">Alege un serviciu</div>

@@ -1,6 +1,6 @@
 # Documentația tehnică `daser_rest`
 
-Acest director descrie starea reală a aplicației, actualizată la 30 octombrie 2026. Codul aplicației este sursa de adevăr; directoarele `vendor/` și `public/js/filament/` conțin dependențe sau asset-uri publicate și nu sunt tratate drept logică proprie.
+Acest director descrie starea reală a aplicației, actualizată la 11 noiembrie 2026. Codul aplicației este sursa de adevăr. Directoarele `vendor/` și `public/js/filament/` conțin dependențe sau asset-uri publicate și nu sunt tratate drept logică proprie.
 
 ## Ordinea recomandată de lectură
 
@@ -38,6 +38,8 @@ Acest director descrie starea reală a aplicației, actualizată la 30 octombrie
 Catalogul include clasele și metodele proprii din `app/`, rutele din `routes/`, seederele, factory-urile și funcțiile JavaScript/Alpine din `resources/views/`. Metodele standard `up()`/`down()` ale migrațiilor sunt inventariate pe fișier în documentul 16. Callback-urile anonime din configurările Filament sunt explicate în cadrul metodei publice care le conține. Nu sunt reproduse funcțiile framework-ului din `vendor/` și nici bundle-urile Filament publicate în `public/`.
 
 ## Istoric modificări
+
+- **2026-11-11** — documentate tarifele suplimentare de vulcanizare și covoare, cantitățile în m² și configurarea din admin a API-ului pentru n8n. Trimiterea notificărilor se configurează ulterior în n8n.
 
 - **2026-10-30** — documentate conturile clienților, evidența facturilor în admin și API-ul de rapoarte pentru n8n; notificările și deployment-ul rămân de configurat pe instalări.
 

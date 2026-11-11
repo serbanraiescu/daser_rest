@@ -115,6 +115,33 @@ class ServiceReportApiTest extends ServiceTestCase
         $this->assertEquals(60, $response->json('summary.total_revenue'));
     }
 
+    public function test_report_preserves_fractional_surface_and_groups_matching_names_by_unit(): void
+    {
+        $carpet = $this->completedOrder('cash', '5.00', '2026-10-30 08:00:00');
+        $carpet->items()->first()->update(['name' => 'Curățare', 'unit' => 'm²', 'quantity' => 2.5]);
+        $piece = $this->completedOrder('cash', '5.00', '2026-10-30 09:00:00');
+        $piece->items()->first()->update(['name' => 'Curățare', 'unit' => 'buc.']);
+
+        $response = $this->withToken(self::TOKEN)
+            ->getJson('/api/v1/service/reports/daily?date=2026-10-30')->assertOk();
+
+        $services = collect($response->json('services'))->keyBy('unit');
+        $this->assertCount(2, $services);
+        $this->assertEquals(2.5, $services['m²']['quantity_sold']);
+        $this->assertEquals(12.5, $services['m²']['revenue']);
+        $this->assertEquals(1, $services['buc.']['quantity_sold']);
+        $this->assertEquals(5, $services['buc.']['revenue']);
+        $this->assertEquals(17.5, $response->json('summary.total_revenue'));
+        $response->assertJsonPath('orders.data.0.items.0.unit', 'm²');
+        $this->assertEquals(2.5, $response->json('orders.data.0.items.0.quantity'));
+        $this->assertEquals(12.5, $response->json('orders.data.0.items.0.line_total'));
+
+        $report = app(\App\Modules\Service\Services\ServiceReportService::class)
+            ->dailyForStaff($this->operator->id, $this->operator->name);
+        $this->assertEquals(2.5, $report['services_sold']->firstWhere('unit', 'm²')->total_qty);
+        $this->assertStringContainsString('2.5 m²', view('service.print-daily-report', compact('report'))->render());
+    }
+
     private function completedOrder(string $method, string $amount, string $completedAt)
     {
         $order = $this->order();

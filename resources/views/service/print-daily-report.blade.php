@@ -183,7 +183,7 @@
             @forelse($report['services_sold'] as $service)
                 <tr>
                     <td>{{ $service->name }}</td>
-                    <td style="text-align: center;">{{ $service->total_qty }}</td>
+                    <td style="text-align: center;">{{ $service->total_qty }} {{ $service->unit }}</td>
                     <td class="text-right">{{ number_format($service->total_value, 2) }}</td>
                 </tr>
             @empty

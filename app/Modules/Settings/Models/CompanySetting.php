@@ -8,6 +8,10 @@ class CompanySetting extends Model
 {
     protected $table = 'company_settings';
 
+    protected $hidden = [
+        'service_report_api_token',
+    ];
+
     protected $fillable = [
         'site_name',
         'company_logo',
@@ -52,6 +56,8 @@ class CompanySetting extends Model
     ];
 
     protected $casts = [
+        'service_report_api_token' => 'encrypted',
+        'service_report_api_enabled' => 'boolean',
         'enable_service_module'    => 'boolean',
         'prevent_negative_stock'   => 'boolean',
         'show_all_products_initially' => 'boolean',
@@ -67,6 +73,16 @@ class CompanySetting extends Model
         'google_rating' => 'decimal:1',
         'google_review_count' => 'integer',
     ];
+
+    public function serviceReportApiToken(): string
+    {
+        return $this->service_report_api_token ?? (string) config('service_reporting.api_token', '');
+    }
+
+    public function serviceReportApiEnabled(): bool
+    {
+        return $this->service_report_api_enabled !== false && strlen($this->serviceReportApiToken()) >= 32;
+    }
 
     /**
      * Obține programul de funcționare grupat și tradus în limba română.

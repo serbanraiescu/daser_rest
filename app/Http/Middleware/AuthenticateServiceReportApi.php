@@ -12,10 +12,11 @@ class AuthenticateServiceReportApi
     public function handle(Request $request, Closure $next): Response
     {
         $request->headers->set('Accept', 'application/json');
-        $expected = (string) config('service_reporting.api_token', '');
+        $settings = CompanySetting::firstOrNew();
+        $expected = $settings->serviceReportApiToken();
         $headers = ['Cache-Control' => 'no-store, private', 'Pragma' => 'no-cache'];
 
-        if (strlen($expected) < 32) {
+        if (!$settings->serviceReportApiEnabled()) {
             return response()->json(['message' => 'API-ul de rapoarte nu este configurat.'], 503, $headers);
         }
 
@@ -24,7 +25,7 @@ class AuthenticateServiceReportApi
             return response()->json(['message' => 'Autentificare API invalidă.'], 401, $headers + ['WWW-Authenticate' => 'Bearer']);
         }
 
-        if (!(CompanySetting::first()?->enable_service_module ?? false)) {
+        if (!$settings->enable_service_module) {
             return response()->json(['message' => 'Modulul Service nu este activ.'], 404, $headers);
         }
 

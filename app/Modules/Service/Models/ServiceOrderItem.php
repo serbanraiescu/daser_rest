@@ -37,13 +37,21 @@ class ServiceOrderItem extends Model
         return $this->belongsTo(ServiceItem::class, 'service_item_id');
     }
 
+    public static function calculateLineTotal(float $quantity, float $unitPrice): float
+    {
+        $quantityHundredths = round($quantity * 100);
+        $priceCents = round($unitPrice * 100);
+
+        return round($quantityHundredths * $priceCents / 100) / 100;
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::saving(function ($item) {
             $item->ensureOrderIsEditable();
-            $item->line_total = $item->quantity * $item->unit_price;
+            $item->line_total = self::calculateLineTotal($item->quantity, $item->unit_price);
         });
 
         static::deleting(fn ($item) => $item->ensureOrderIsEditable());

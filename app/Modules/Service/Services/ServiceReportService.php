@@ -71,8 +71,8 @@ class ServiceReportService
 
         $services = DB::table('service_order_items')
             ->whereIn('service_order_id', (clone $completed)->select('id'))
-            ->select('name', DB::raw('SUM(quantity) as quantity_sold'), DB::raw('SUM(line_total) as revenue'))
-            ->groupBy('name')->orderByDesc('quantity_sold')->get();
+            ->select('name', 'unit', DB::raw('SUM(quantity) as quantity_sold'), DB::raw('SUM(line_total) as revenue'))
+            ->groupBy('name', 'unit')->orderByDesc('quantity_sold')->get();
 
         $staff = (clone $completed)->with('staff:id,name')
             ->select('staff_member_id', DB::raw('COUNT(*) as orders_count'), DB::raw('SUM(total) as total_sales'))
@@ -168,6 +168,7 @@ class ServiceReportService
             'uninvoiced_revenue' => $data['uninvoiced']['period']['amount'],
             'services_sold' => collect($data['services'])->map(fn ($item) => (object) [
                 'name' => $item->name,
+                'unit' => $item->unit,
                 'total_qty' => $item->quantity_sold,
                 'total_value' => $item->revenue,
             ]),
